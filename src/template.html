@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0b0f" />
+<title>CharonCut — видеоредактор в браузере</title>
+<meta name="description" content="CharonCut — бесплатный браузерный видеоредактор в духе CapCut: таймлайн, обрезка, текст, фильтры, переходы, звук и экспорт. Хостится на GitHub Pages." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0b0f'/%3E%3Cpath d='M26 20l16 12-16 12z' fill='%2322d3ee'/%3E%3C/svg%3E" />
+<style>
+/*__STYLES__*/
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="brand" title="CharonCut">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <rect x="1.5" y="3.5" width="21" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor"/>
+      </svg>
+      <span>Charon<b>Cut</b></span>
+    </div>
+
+    <input id="projectName" class="proj-name" value="Мой проект" aria-label="Название проекта" />
+    <span id="saveHint" class="save-hint">Сохранено</span>
+
+    <div class="top-actions">
+      <button class="btn icon" id="btnUndo" title="Отменить (Ctrl+Z)" aria-label="Отменить"></button>
+      <button class="btn icon" id="btnRedo" title="Повторить (Ctrl+Shift+Z)" aria-label="Повторить"></button>
+      <button class="btn icon" id="btnSave" title="Сохранить в браузере (Ctrl+S)" aria-label="Сохранить"></button>
+      <span class="divider"></span>
+      <button class="btn ghost" id="btnUploadTop" title="Импорт файлов">Импорт</button>
+      <button class="btn ghost" id="btnProject" title="Проект: JSON, сброс">Проект</button>
+      <button class="btn ghost icon" id="btnHelp" title="Как это работает">?</button>
+      <button class="btn primary" id="btnExport" title="Экспорт (Ctrl+E)">Экспорт</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+
+    <aside class="left" aria-label="Библиотека">
+      <nav class="tabs" id="tabs"></nav>
+      <div class="panel-body" id="panelBody"></div>
+    </aside>
+
+    <section class="stage-wrap" aria-label="Предпросмотр">
+      <div class="stage" id="stage">
+        <canvas id="preview" width="1920" height="1080"></canvas>
+        <div class="stage-hud" id="stageHud"></div>
+        <div class="stage-empty" id="stageEmpty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 16V4M7.5 8.5L12 4l4.5 4.5M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/>
+            </svg>
+          </div>
+          <strong>Добавьте видео или фото</strong>
+          <span>или нажмите, чтобы выбрать файлы</span>
+          <small>MP4 · WebM · MOV · JPG · PNG · MP3 · WAV</small>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button class="btn icon" id="btnBack10" title="Назад 5 с">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M11 5L4 12l7 7M20 5l-7 7 7 7"/></svg>
+        </button>
+        <button class="btn play" id="btnPlay" title="Плей / пауза (Space)" aria-label="Воспроизвести"></button>
+        <button class="btn icon" id="btnFwd10" title="Вперёд 5 с">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 5l7 7-7 7M4 5l7 7-7 7"/></svg>
+        </button>
+        <span class="time" id="timeLabel">00:00:00 / 00:00:00</span>
+        <span class="spacer"></span>
+        <div class="aspect" id="aspectSeg">
+          <button data-aspect="16:9" class="on">16:9</button>
+          <button data-aspect="9:16">9:16</button>
+          <button data-aspect="1:1">1:1</button>
+          <button data-aspect="4:5">4:5</button>
+        </div>
+        <div class="vol">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l4 4V6L7 10H4zM16.5 8.5a5 5 0 010 7"/></svg>
+          <input type="range" id="masterVol" min="0" max="100" value="100" aria-label="Общая громкость" />
+        </div>
+      </div>
+    </section>
+
+    <aside class="right" id="inspector" aria-label="Инспектор"></aside>
+  </main>
+
+  <section class="timeline" aria-label="Таймлайн">
+    <div class="tl-toolbar">
+      <button class="btn sm" id="tlSplit" title="Разделить (S)">Разделить</button>
+      <button class="btn sm" id="tlDelete" title="Удалить (Del)">Удалить</button>
+      <button class="btn sm" id="tlDup" title="Дублировать (Ctrl+D)">Дублировать</button>
+      <button class="btn sm" id="btnAddText" title="Добавить текст">+ Текст</button>
+      <span class="spacer"></span>
+      <span class="tl-count dim" id="tlCount"></span>
+      <span class="tl-dur dim" id="tlDur"></span>
+      <button class="btn sm ghost" id="tlFit" title="Вписать таймлайн в окно">Вписать</button>
+      <input type="range" id="tlZoom" min="12" max="400" value="60" aria-label="Масштаб таймлайна" class="tl-zoom" />
+    </div>
+
+    <div class="tl-body">
+      <div class="tl-labels" id="tlLabels"></div>
+      <div class="tl-scroll" id="tlScroll">
+        <div class="tl-inner" id="tlInner">
+          <div class="tl-ruler" id="tlRuler"></div>
+          <div class="tl-tracks" id="tlTracks"></div>
+          <div class="tl-playhead" id="tlPlayhead"><span class="cap"></span></div>
+          <div class="snap-guide" id="snapGuide"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <nav class="mobile-nav" aria-label="Панели редактора">
+    <button id="mobileLibrary" class="active" aria-pressed="true">Инструменты</button>
+    <button id="mobileInspector" aria-pressed="false">Параметры</button>
+    <button id="mobileProject">Проект</button>
+  </nav>
+</div>
+
+<input type="file" id="fileInput" accept="video/*,image/*,audio/*,.mp4,.webm,.mov,.m4v,.mkv,.mp3,.wav,.ogg,.m4a,.jpg,.jpeg,.png,.webp,.gif" multiple hidden />
+<input type="file" id="projectInput" accept="application/json,.json" hidden />
+<div id="modalRoot"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+/*__APP_JS__*/
+</script>
+</body>
+</html>

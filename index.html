@@ -1,0 +1,4455 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0b0f" />
+<title>CharonCut — видеоредактор в браузере</title>
+<meta name="description" content="CharonCut — бесплатный браузерный видеоредактор в духе CapCut: таймлайн, обрезка, текст, фильтры, переходы, звук и экспорт. Хостится на GitHub Pages." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0b0f'/%3E%3Cpath d='M26 20l16 12-16 12z' fill='%2322d3ee'/%3E%3C/svg%3E" />
+<style>
+/* ============================================================
+   CharonCut · стили
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --bg: #08080b;
+  --panel: #0f0f14;
+  --panel-2: #14141b;
+  --panel-3: #1a1a23;
+  --line: #24242f;
+  --line-2: #2f2f3d;
+  --txt: #e9e9f0;
+  --txt-2: #a2a2b4;
+  --dim: #74748a;
+  --accent: #22d3ee;
+  --accent-2: #6366f1;
+  --accent-ink: #041c22;
+  --danger: #f4546b;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --radius: 10px;
+  --shadow: 0 12px 32px rgba(0, 0, 0, .45);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--txt);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button { font-family: inherit; font-size: inherit; color: inherit; }
+input, select, textarea { font-family: inherit; font-size: inherit; }
+.ic { flex: 0 0 auto; }
+.spacer { flex: 1 1 auto; }
+.dim { color: var(--dim); }
+.hint { color: var(--dim); font-size: 12px; line-height: 1.5; margin: 8px 0 0; }
+.hint.err { color: var(--danger); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a36; border-radius: 6px; border: 2px solid var(--panel); }
+::-webkit-scrollbar-thumb:hover { background: #3a3a4a; }
+
+/* ---------- каркас ---------- */
+
+.app {
+  display: grid;
+  grid-template-rows: 54px minmax(0, 1fr) 272px;
+  height: 100dvh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, #101016, #0c0c11);
+  border-bottom: 1px solid var(--line);
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 16px;
+  letter-spacing: .2px;
+  user-select: none;
+}
+.brand span { color: var(--txt); font-weight: 600; }
+.brand b { color: var(--accent); font-weight: 800; }
+
+.proj-name {
+  width: 210px;
+  background: #15151d;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: var(--txt);
+  outline: none;
+  transition: border-color .15s, background .15s;
+}
+.proj-name:focus { border-color: var(--accent); background: #181822; }
+
+.save-hint {
+  font-size: 11px;
+  color: var(--ok);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity .2s, transform .2s;
+}
+.save-hint.show { opacity: 1; transform: none; }
+
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.divider { width: 1px; height: 22px; background: var(--line); margin: 0 2px; }
+
+/* ---------- кнопки ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: var(--panel-3);
+  color: var(--txt);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .14s, border-color .14s, transform .05s, opacity .14s;
+}
+.btn:hover { background: #21212c; border-color: #3b3b4c; }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .4; cursor: default; transform: none; }
+.btn.primary {
+  background: linear-gradient(180deg, #35e0f5, #14b8cf);
+  border-color: #0ea5b7;
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.btn.primary:hover { background: linear-gradient(180deg, #4de8fa, #1cc4dc); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--txt-2); }
+.btn.ghost:hover { background: #1b1b24; color: var(--txt); }
+.btn.icon { width: 34px; padding: 0; }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px; border-radius: 7px; }
+.btn.block { width: 100%; }
+.btn.danger { color: #ff8496; border-color: #4a2630; }
+.btn.danger:hover { background: #2a161c; }
+.btn.play {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: linear-gradient(180deg, #2ce0f5, #0fb3ca);
+  border: none; color: var(--accent-ink);
+  box-shadow: 0 6px 18px rgba(34, 211, 238, .28);
+}
+.btn.play:hover { filter: brightness(1.06); }
+.mini {
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 6px; border: 1px solid var(--line-2);
+  background: rgba(20, 20, 28, .9); color: var(--txt-2);
+  cursor: pointer; padding: 0;
+  transition: background .14s, color .14s;
+}
+.mini:hover { background: #2a2a38; color: var(--txt); }
+.mini.danger:hover { background: #3a1a22; color: #ff8496; border-color: #5a2430; }
+
+/* ---------- рабочая область ---------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 312px;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.left, .right {
+  background: var(--panel);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.left { border-right: 1px solid var(--line); }
+.right { border-left: 1px solid var(--line); overflow-y: auto; }
+
+/* ---------- вкладки ---------- */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 8px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 9px 9px;
+  border: none; background: transparent; color: var(--dim);
+  border-radius: 9px 9px 0 0;
+  cursor: pointer; font-size: 11px;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, background .15s, border-color .15s;
+  flex: 0 0 auto;
+}
+.tab:hover { color: var(--txt-2); background: #15151d; }
+.tab.on { color: var(--accent); border-bottom-color: var(--accent); background: #14141c; }
+
+.panel-body { flex: 1; overflow-y: auto; padding: 12px; }
+
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px;
+}
+.panel-head h3 { margin: 0; font-size: 13.5px; font-weight: 650; letter-spacing: .2px; }
+
+.section-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--dim); margin: 16px 0 8px; font-weight: 600;
+}
+
+/* ---------- медиатека ---------- */
+
+.dropzone {
+  border: 1.5px dashed #2e2e3d;
+  border-radius: 12px;
+  padding: 16px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  color: var(--txt-2); font-size: 12.5px; text-align: center;
+  cursor: pointer; background: #101018;
+  transition: border-color .15s, background .15s;
+}
+.dropzone:hover, .dropzone.over { border-color: var(--accent); background: #0f1a1e; color: var(--txt); }
+.dropzone small { color: var(--dim); font-size: 10.5px; letter-spacing: .02em; }
+
+.media-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.media-card {
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 10px; overflow: hidden; cursor: pointer;
+  transition: border-color .15s, transform .12s;
+}
+.media-card:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.media-thumb {
+  position: relative; aspect-ratio: 16 / 9; background: #0a0a0f;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.media-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-noimg { color: var(--dim); }
+.media-dur {
+  position: absolute; right: 5px; bottom: 5px;
+  font-size: 10px; padding: 1px 5px; border-radius: 5px;
+  background: rgba(6, 6, 10, .82); color: #dcdce6;
+}
+.media-actions {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 5px;
+  background: rgba(6, 6, 12, .68); opacity: 0; transition: opacity .14s;
+}
+.media-card:hover .media-actions { opacity: 1; }
+.media-name {
+  padding: 6px 8px; font-size: 11.5px; color: var(--txt-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---------- текст / стикеры ---------- */
+
+.preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.preset {
+  height: 62px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: linear-gradient(140deg, #1b1b25, #101017);
+  color: var(--txt); font-weight: 600;
+  transition: border-color .15s, background .15s;
+}
+.preset:hover { border-color: var(--accent); background: #16161f; }
+.preset small { font-size: 10px; color: var(--dim); font-weight: 500; }
+
+.sticker-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.sticker {
+  aspect-ratio: 1; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--panel-2); font-size: 19px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .14s, border-color .14s, transform .1s;
+}
+.sticker:hover { background: #1e1e2a; border-color: var(--line-2); transform: scale(1.06); }
+
+/* ---------- фильтры ---------- */
+
+.filter-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+.filter-card {
+  border: 1px solid var(--line); background: var(--panel-2);
+  border-radius: 9px; padding: 0; overflow: hidden; cursor: pointer;
+  display: flex; flex-direction: column; gap: 0;
+  transition: border-color .14s, transform .12s;
+}
+.filter-card:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.filter-card.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.filter-sample { aspect-ratio: 1; width: 100%; }
+.filter-card span { font-size: 10.5px; padding: 5px 4px; color: var(--txt-2); text-align: center; }
+
+.switch { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--txt-2); cursor: pointer; user-select: none; }
+.switch input { appearance: none; width: 34px; height: 19px; border-radius: 999px; background: #2b2b38; position: relative; cursor: pointer; transition: background .16s; border: none; }
+.switch input::after { content: ''; position: absolute; top: 2.5px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #9a9aae; transition: transform .16s, background .16s; }
+.switch input:checked { background: rgba(34, 211, 238, .35); }
+.switch input:checked::after { transform: translateX(14px); background: var(--accent); }
+.switch.mt { margin-top: 10px; }
+
+/* ---------- переходы ---------- */
+
+.trans-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trans-card {
+  border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px;
+  padding: 8px; cursor: pointer; display: flex; flex-direction: column; gap: 6px;
+  color: var(--txt-2); font-size: 11.5px;
+  transition: border-color .14s, color .14s;
+}
+.trans-card:hover { border-color: var(--line-2); color: var(--txt); }
+.trans-card.on { border-color: var(--accent); color: var(--txt); }
+.trans-preview { position: relative; height: 42px; border-radius: 6px; overflow: hidden; background: #0a0a10; }
+.trans-preview .ta, .trans-preview .tb { position: absolute; inset: 0; }
+.trans-preview .ta { background: linear-gradient(135deg, #f472b6, #7c3aed); }
+.trans-preview .tb { background: linear-gradient(135deg, #22d3ee, #2563eb); }
+.trans-preview.t-none .tb { opacity: 0; }
+.trans-preview.t-crossfade .tb { opacity: .55; }
+.trans-preview.t-fadeblack .tb { opacity: .25; transform: scale(.86); }
+.trans-preview.t-slide .tb { transform: translateX(38%); }
+.trans-preview.t-zoom .tb { transform: scale(.6); opacity: .7; border-radius: 12px; }
+
+/* ---------- аудио ---------- */
+
+.sfx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sfx-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 10px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel-2); cursor: pointer; color: var(--txt-2);
+  transition: border-color .14s, background .14s, color .14s;
+}
+.sfx-card:hover { border-color: var(--accent); color: var(--txt); background: #14141e; }
+.sfx-card span { font-size: 12.5px; font-weight: 600; color: var(--txt); }
+.sfx-card small { font-size: 10.5px; color: var(--dim); }
+
+.audio-list { display: flex; flex-direction: column; gap: 6px; }
+.audio-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: 9px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  color: var(--txt-2);
+}
+.audio-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.audio-meta span { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.audio-meta small { font-size: 10.5px; color: var(--dim); }
+
+.row { display: flex; align-items: center; }
+.row.gap { gap: 8px; }
+.row.gap > .block { flex: 1; }
+
+#btnRecord.rec { color: #ff8496; border-color: #5a2430; background: #2a161c; }
+
+/* ---------- сцена / превью ---------- */
+
+.stage-wrap {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: radial-gradient(120% 90% at 50% 0%, #13131c 0%, #08080b 72%);
+}
+
+.stage {
+  position: relative; flex: 1; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px 22px;
+}
+#preview {
+  max-width: 100%; max-height: 100%;
+  border-radius: 10px;
+  background: #000;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .55), 0 0 0 1px #20202b;
+  cursor: default;
+  touch-action: none;
+}
+#preview.dragging { cursor: grabbing; }
+
+.stage-hud {
+  position: absolute; left: 26px; bottom: 24px;
+  font-size: 11px; color: #b9b9c9;
+  background: rgba(8, 8, 12, .6); padding: 3px 8px; border-radius: 6px;
+  max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  pointer-events: none;
+}
+.stage-hud:empty { display: none; }
+
+.stage-empty {
+  position: absolute; inset: 18px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  color: var(--txt-2); text-align: center; cursor: pointer;
+  border: 1.5px dashed #2b2b39; border-radius: 14px;
+  background: rgba(10, 10, 15, .55);
+  transition: opacity .2s, border-color .15s, background .15s;
+}
+.stage-empty:hover { border-color: var(--accent); background: rgba(12, 22, 26, .6); }
+.stage-empty.hide { display: none; }
+.stage-empty strong { font-size: 15px; color: var(--txt); }
+.stage-empty span { font-size: 12.5px; }
+.stage-empty small { font-size: 10.5px; color: var(--dim); letter-spacing: .03em; }
+.empty-icon { color: var(--accent); opacity: .9; margin-bottom: 2px; }
+
+.transport {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 18px 12px;
+}
+.time { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--txt-2); letter-spacing: .02em; }
+
+.aspect { display: flex; background: #101017; border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.aspect button {
+  border: none; background: transparent; color: var(--dim);
+  padding: 4px 9px; border-radius: 6px; cursor: pointer; font-size: 11.5px;
+  transition: background .14s, color .14s;
+}
+.aspect button:hover { color: var(--txt-2); }
+.aspect button.on { background: #22222e; color: var(--accent); }
+
+.vol { display: flex; align-items: center; gap: 6px; color: var(--dim); }
+.vol input { width: 84px; }
+
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: 999px;
+  background: #2a2a38; outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--accent); border: 2px solid #0b1114;
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, .4);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 13px; height: 13px; border: 2px solid #0b1114; border-radius: 50%; background: var(--accent);
+}
+
+/* ---------- инспектор ---------- */
+
+#inspector { padding: 12px; }
+.insp-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+  padding-bottom: 10px; margin-bottom: 6px; border-bottom: 1px solid var(--line);
+}
+.insp-title { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.insp-title strong { font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge-t {
+  align-self: flex-start; font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 5px;
+  background: #1d1d29; color: #9fa0b8; border: 1px solid #2b2b3a;
+}
+.badge-t.text { color: var(--accent); border-color: #1d3d44; background: #0d1d22; }
+
+.field { display: flex; flex-direction: column; gap: 5px; margin: 9px 0; }
+.field > label { font-size: 11px; color: var(--dim); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.num-wrap { position: relative; display: flex; align-items: center; }
+.num {
+  width: 100%; height: 30px; padding: 0 26px 0 9px;
+  background: #14141c; border: 1px solid var(--line); border-radius: 8px; color: var(--txt);
+  outline: none;
+}
+.num:focus { border-color: var(--accent); }
+.num-wrap .suffix { position: absolute; right: 8px; font-size: 10.5px; color: var(--dim); pointer-events: none; }
+
+.sel-input, .ta {
+  width: 100%; background: #14141c; border: 1px solid var(--line);
+  border-radius: 8px; color: var(--txt); padding: 7px 9px; outline: none;
+}
+.sel-input:focus, .ta:focus { border-color: var(--accent); }
+.ta { resize: vertical; min-height: 62px; line-height: 1.45; }
+
+input[type="color"].color {
+  width: 100%; height: 30px; padding: 2px; border: 1px solid var(--line);
+  border-radius: 8px; background: #14141c; cursor: pointer;
+}
+
+.srow { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+.srow-label { font-size: 11.5px; color: var(--txt-2); flex: 0 0 88px; }
+.srow input[type="range"] { flex: 1; min-width: 0; }
+.srow-val { font-size: 11px; color: var(--dim); min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  height: 26px; padding: 0 9px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--line); background: #14141c; color: var(--txt-2);
+  font-size: 11.5px;
+  transition: background .14s, color .14s, border-color .14s;
+}
+.chip:hover { border-color: var(--line-2); color: var(--txt); }
+.chip.on { background: rgba(34, 211, 238, .14); border-color: var(--accent); color: var(--accent); }
+
+.pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 132px; }
+.pos-cell {
+  aspect-ratio: 16 / 10; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: #14141c;
+  transition: background .14s, border-color .14s;
+}
+.pos-cell:hover { border-color: var(--line-2); background: #1b1b26; }
+.pos-cell.on { background: rgba(34, 211, 238, .18); border-color: var(--accent); }
+
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.action-grid .btn { justify-content: flex-start; }
+
+.stats { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.stat-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--txt-2); }
+.stat-row strong { color: var(--txt); font-variant-numeric: tabular-nums; }
+
+.tips { margin: 4px 0 0; padding-left: 18px; color: var(--dim); font-size: 11.5px; line-height: 1.65; }
+.keys { display: flex; flex-direction: column; gap: 4px; }
+.key-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--txt-2); }
+.key-row kbd {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 10.5px; padding: 2px 6px; min-width: 58px; text-align: center;
+  background: #17171f; border: 1px solid var(--line-2); border-bottom-width: 2px;
+  border-radius: 5px; color: #cfcfe0;
+}
+
+/* ---------- таймлайн ---------- */
+
+.timeline {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; min-height: 0;
+}
+
+.tl-toolbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-bottom: 1px solid var(--line);
+  background: #0d0d12;
+}
+.tl-count, .tl-dur { font-size: 11.5px; }
+.tl-dur { margin-right: 4px; }
+.tl-zoom { width: 120px; }
+
+.tl-body { flex: 1; display: flex; min-height: 0; }
+.tl-labels {
+  width: 108px; flex: 0 0 108px;
+  border-right: 1px solid var(--line);
+  background: #0c0c11;
+  padding-top: 22px; /* под линейку */
+}
+.tl-label {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 0 9px; border-bottom: 1px solid #16161e;
+  font-size: 11px; color: var(--txt-2);
+}
+.tl-label-dot { width: 6px; height: 6px; border-radius: 50%; background: #3a3a4c; }
+.tl-label-dot.video { background: #6366f1; }
+.tl-label-dot.text { background: #22d3ee; }
+.tl-label-dot.audio { background: #34d399; }
+
+.tl-scroll { flex: 1; overflow: auto; position: relative; }
+.tl-inner { position: relative; min-height: 100%; }
+
+.tl-ruler {
+  position: relative; height: 22px;
+  border-bottom: 1px solid var(--line);
+  background: #0c0c11;
+  cursor: ew-resize;
+  user-select: none;
+}
+.tick { position: absolute; top: 0; height: 100%; border-left: 1px solid #23232e; }
+.tick span {
+  position: absolute; left: 4px; top: 4px;
+  font-size: 9.5px; color: #6e6e84; font-variant-numeric: tabular-nums;
+}
+
+.tl-tracks { position: relative; }
+.tl-track {
+  position: relative;
+  border-bottom: 1px solid #15151d;
+  background: repeating-linear-gradient(90deg, #0b0b10 0 39px, #0d0d13 39px 40px);
+}
+.tl-track:empty::after {
+  content: '';
+}
+
+.clip {
+  position: absolute; top: 3px; bottom: 3px;
+  border-radius: 7px; overflow: hidden; cursor: grab;
+  background: linear-gradient(180deg, #2a2a3a, #23232f);
+  border: 1px solid #38384a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+  user-select: none; touch-action: none;
+  transition: box-shadow .12s, border-color .12s;
+}
+.clip:hover { border-color: #4a4a60; }
+.clip.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 4px 14px rgba(34, 211, 238, .18); z-index: 3; }
+.clip.t-text { background: linear-gradient(180deg, #16323a, #123039); border-color: #1f4a55; }
+.clip.t-audio { background: linear-gradient(180deg, #17352c, #14312a); border-color: #1f4a3e; }
+.clip.t-overlay { background: linear-gradient(180deg, #2b2743, #242039); border-color: #3d3663; }
+
+.clip-strip {
+  position: absolute; inset: 0;
+  background-repeat: repeat-x;
+  opacity: .55;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.clip.t-text .clip-strip, .clip.t-audio .clip-strip { display: none; }
+
+.clip-wave {
+  position: absolute; inset: 4px 2px;
+  background-image: repeating-linear-gradient(90deg, rgba(52, 211, 153, .75) 0 1.5px, transparent 1.5px 3px);
+  mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: .85;
+}
+
+.clip-title {
+  position: absolute; left: 8px; right: 26px; top: 4px;
+  font-size: 10.5px; color: #e8e8f2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
+  pointer-events: none;
+}
+.clip-text-badge {
+  position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(34, 211, 238, .2); color: var(--accent);
+  font-size: 11px; font-weight: 700; pointer-events: none;
+}
+.clip.t-text .clip-title { left: 28px; }
+
+.clip-badge {
+  position: absolute; right: 5px; top: 4px;
+  font-size: 9px; padding: 1px 4px; border-radius: 4px;
+  background: rgba(8, 8, 12, .75); color: #cfcfe4;
+  pointer-events: none;
+}
+.clip-badge.mute { right: 5px; top: 18px; color: #ff8496; }
+
+.handle {
+  position: absolute; top: 0; bottom: 0; width: 9px;
+  cursor: ew-resize; z-index: 2;
+}
+.handle::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 2px; height: 42%; transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, .35); border-radius: 2px;
+  opacity: 0; transition: opacity .12s;
+}
+.clip:hover .handle::after, .clip.sel .handle::after { opacity: 1; }
+.handle.l { left: 0; }
+.handle.r { right: 0; }
+
+.tl-playhead {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 1px;
+  background: #ff5a75; pointer-events: none; z-index: 6;
+  will-change: transform;
+}
+.tl-playhead .cap {
+  position: absolute; top: 0; left: -5px;
+  width: 11px; height: 11px; border-radius: 3px;
+  background: #ff5a75;
+  box-shadow: 0 0 8px rgba(255, 90, 117, .6);
+}
+
+.snap-guide {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 1px;
+  background: var(--accent); opacity: .8; display: none;
+  pointer-events: none; z-index: 5;
+}
+
+/* ---------- тосты ---------- */
+
+#toasts {
+  position: fixed; left: 50%; bottom: 292px;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  z-index: 100; pointer-events: none;
+}
+.toast {
+  background: #1b1b26; border: 1px solid var(--line-2);
+  color: var(--txt); font-size: 12.5px;
+  padding: 9px 13px; border-radius: 9px;
+  box-shadow: var(--shadow);
+  opacity: 0; transform: translateY(8px) scale(.98);
+  transition: opacity .2s, transform .2s;
+  max-width: 340px;
+}
+.toast.in { opacity: 1; transform: none; }
+.toast.ok { border-color: #1f4a3e; }
+.toast.warn { border-color: #4a3f1f; }
+.toast.err { border-color: #4a2630; }
+
+/* ---------- модальные окна ---------- */
+
+#modalRoot .overlay {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(4, 4, 8, .72);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .16s;
+  padding: 20px;
+}
+#modalRoot .overlay.in { opacity: 1; }
+
+.modal {
+  width: min(560px, 100%);
+  max-height: min(86vh, 780px);
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 16px;
+  box-shadow: 0 26px 70px rgba(0, 0, 0, .65);
+  transform: translateY(8px) scale(.985);
+  transition: transform .18s;
+}
+.overlay.in .modal { transform: none; }
+.export-modal { width: min(600px, 100%); }
+
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--line);
+}
+.modal-head h2 { margin: 0; font-size: 15px; font-weight: 650; }
+.modal-body { padding: 14px 16px; }
+.modal-body ol { margin: 6px 0 0; padding-left: 20px; }
+.modal-foot {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-top: 1px solid var(--line);
+  background: #0c0c11; border-radius: 0 0 16px 16px;
+}
+
+.export-summary {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  padding: 10px 12px; margin-bottom: 6px;
+  background: #12121a; border: 1px solid var(--line); border-radius: 10px;
+}
+.export-summary > div { display: flex; flex-direction: column; gap: 3px; }
+.export-summary .dim { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; }
+.export-summary strong { font-size: 12.5px; }
+
+.bar { height: 8px; border-radius: 999px; background: #1c1c26; overflow: hidden; margin: 14px 0 6px; }
+.bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-2), var(--accent)); border-radius: 999px; transition: width .12s linear; }
+
+/* ---------- перетаскивание файлов ---------- */
+
+body.dropping::after {
+  content: 'Отпустите файлы, чтобы импортировать';
+  position: fixed; inset: 14px; z-index: 80;
+  border: 2px dashed var(--accent); border-radius: 18px;
+  background: rgba(34, 211, 238, .07);
+  color: var(--accent); font-size: 15px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+}
+
+body.dragging-clip { cursor: grabbing; }
+body.dragging-clip .clip { cursor: grabbing; }
+
+/* ---------- адаптив ---------- */
+
+@media (max-width: 1180px) {
+  .workspace { grid-template-columns: 270px minmax(0, 1fr) 268px; }
+  .app { grid-template-rows: 54px minmax(0, 1fr) 250px; }
+  .tl-labels { width: 92px; flex-basis: 92px; }
+}
+
+@media (max-width: 900px) {
+  html, body { overflow: auto; }
+  .app { grid-template-rows: auto auto 260px; height: auto; min-height: 100dvh; }
+  .workspace { grid-template-columns: 1fr; }
+  .left { border-right: none; border-bottom: 1px solid var(--line); max-height: 320px; }
+  .right { border-left: none; border-top: 1px solid var(--line); }
+  .topbar { flex-wrap: wrap; height: auto; padding: 8px 10px; }
+  .proj-name { width: 130px; }
+  .stage { min-height: 260px; }
+}
+
+/* На узких экранах сетка не должна растягиваться по размеру холста. */
+@media (max-width: 900px) {
+  .app, .workspace, .left, .right, .timeline { min-width: 0; width: 100%; }
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .top-actions { flex: 1 1 100%; margin: 0; flex-wrap: wrap; }
+  .stage { flex: none; height: 300px; min-height: 0; }
+  #preview { width: auto; height: auto; max-width: 100%; max-height: 100%; }
+  .transport { flex-wrap: wrap; }
+  .tl-toolbar { overflow-x: auto; flex-shrink: 0; }
+  .tl-toolbar > * { flex-shrink: 0; }
+  .tl-scroll { min-width: 0; }
+  #toasts { bottom: 12px; width: max-content; max-width: 90vw; }
+}
+
+/* Компактный телефонный редактор: превью и таймлайн всегда перед глазами. */
+.mobile-nav { display: none; }
+@media (max-width: 700px) {
+  html, body { height: 100%; overflow: hidden; }
+  .app {
+    width: 100%; height: 100dvh; min-height: 0; overflow: hidden;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 50px minmax(150px, 32fr) minmax(210px, 28fr) 48px minmax(120px, 40fr);
+    grid-template-areas: 'top' 'preview' 'timeline' 'nav' 'panel';
+  }
+  .topbar { grid-area: top; flex-wrap: nowrap; padding: 5px 8px; gap: 6px; min-width: 0; }
+  .brand { gap: 3px; font-size: 13px; flex-shrink: 0; }
+  .brand svg { width: 17px; height: 17px; }
+  .proj-name { flex: 1 1 40px; min-width: 0; width: 65px; padding: 7px 5px; font-size: 12px; }
+  .save-hint, .top-actions .divider, #btnSave, #btnUploadTop, #btnProject, #btnHelp { display: none; }
+  .top-actions { flex: 0 0 auto; gap: 3px; margin-left: 0; flex-wrap: nowrap; }
+  .top-actions .btn.icon { width: 32px; min-width: 32px; height: 34px; }
+  #btnExport { padding: 0 8px; min-height: 34px; font-size: 12px; }
+  .workspace { display: contents; }
+  .stage-wrap { grid-area: preview; min-width: 0; min-height: 0; overflow: hidden; }
+  .stage { flex: 1 1 auto; min-height: 0; height: auto; padding: 7px 12px; }
+  #preview { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+  .stage-empty { inset: 7px 12px; gap: 2px; }
+  .stage-empty strong { font-size: 13px; }
+  .stage-empty small { display: none; }
+  .stage-hud { left: 15px; bottom: 10px; }
+  .transport { flex-wrap: nowrap; gap: 5px; padding: 3px 8px 6px; min-width: 0; }
+  .transport .btn.icon { width: 30px; min-width: 30px; height: 32px; }
+  .transport .play { width: 36px; height: 36px; min-width: 36px; }
+  .transport .time { font-size: 10px; white-space: nowrap; }
+  .transport .vol { display: none; }
+  .aspect button { padding: 5px 4px; font-size: 10px; }
+  .left, .right { grid-area: panel; min-height: 0; max-height: none; overflow: hidden; border: 0; }
+  .right { display: none; overflow-y: auto; padding-bottom: env(safe-area-inset-bottom); }
+  body.mobile-inspect .left { display: none; }
+  body.mobile-inspect .right { display: flex; }
+  .tabs { flex: 0 0 auto; padding: 0 4px; justify-content: space-around; }
+  .tab { padding: 6px 7px; gap: 2px; font-size: 10px; }
+  .panel-body { min-height: 0; padding: 10px 12px calc(14px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; }
+  .dropzone { padding: 9px; }
+  .dropzone small { display: none; }
+  .timeline { grid-area: timeline; min-height: 0; overflow: hidden; }
+  .tl-toolbar { padding: 5px 8px; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+  .tl-toolbar::-webkit-scrollbar { display: none; }
+  .tl-toolbar .btn { min-height: 36px; }
+  .tl-count, .tl-dur { display: none; }
+  .tl-labels { width: 66px; flex-basis: 66px; }
+  .tl-label { padding: 0 4px; font-size: 9px; }
+  .tl-label:nth-child(1), .tl-track:nth-child(1) { height: 32px !important; }
+  .tl-label:nth-child(2), .tl-track:nth-child(2) { height: 35px !important; }
+  .tl-label:nth-child(3), .tl-track:nth-child(3) { height: 40px !important; }
+  .tl-label:nth-child(4), .tl-track:nth-child(4) { height: 31px !important; }
+  .tl-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .tl-ruler { touch-action: none; }
+  .clip.sel .handle { width: 14px; }
+  .mobile-nav { grid-area: nav; display: flex; border-top: 1px solid var(--line); background: #101016; }
+  .mobile-nav button { flex: 1; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--txt-2); font-size: 12px; font-weight: 600; }
+  .mobile-nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+  #toasts { bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .modal { max-height: calc(100dvh - 20px); }
+  input, select, textarea { font-size: 16px; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .media-actions { opacity: 1; inset: auto 0 0; background: rgba(6,6,12,.65); padding: 3px; }
+  .media-actions .mini { min-width: 40px; min-height: 40px; }
+  .media-dur { top: 4px; bottom: auto; }
+}
+
+@media (max-width: 360px) {
+  .transport #btnBack10, .transport #btnFwd10 { display: none; }
+}
+
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="brand" title="CharonCut">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <rect x="1.5" y="3.5" width="21" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor"/>
+      </svg>
+      <span>Charon<b>Cut</b></span>
+    </div>
+
+    <input id="projectName" class="proj-name" value="Мой проект" aria-label="Название проекта" />
+    <span id="saveHint" class="save-hint">Сохранено</span>
+
+    <div class="top-actions">
+      <button class="btn icon" id="btnUndo" title="Отменить (Ctrl+Z)" aria-label="Отменить"></button>
+      <button class="btn icon" id="btnRedo" title="Повторить (Ctrl+Shift+Z)" aria-label="Повторить"></button>
+      <button class="btn icon" id="btnSave" title="Сохранить в браузере (Ctrl+S)" aria-label="Сохранить"></button>
+      <span class="divider"></span>
+      <button class="btn ghost" id="btnUploadTop" title="Импорт файлов">Импорт</button>
+      <button class="btn ghost" id="btnProject" title="Проект: JSON, сброс">Проект</button>
+      <button class="btn ghost icon" id="btnHelp" title="Как это работает">?</button>
+      <button class="btn primary" id="btnExport" title="Экспорт (Ctrl+E)">Экспорт</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+
+    <aside class="left" aria-label="Библиотека">
+      <nav class="tabs" id="tabs"></nav>
+      <div class="panel-body" id="panelBody"></div>
+    </aside>
+
+    <section class="stage-wrap" aria-label="Предпросмотр">
+      <div class="stage" id="stage">
+        <canvas id="preview" width="1920" height="1080"></canvas>
+        <div class="stage-hud" id="stageHud"></div>
+        <div class="stage-empty" id="stageEmpty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 16V4M7.5 8.5L12 4l4.5 4.5M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/>
+            </svg>
+          </div>
+          <strong>Добавьте видео или фото</strong>
+          <span>или нажмите, чтобы выбрать файлы</span>
+          <small>MP4 · WebM · MOV · JPG · PNG · MP3 · WAV</small>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button class="btn icon" id="btnBack10" title="Назад 5 с">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M11 5L4 12l7 7M20 5l-7 7 7 7"/></svg>
+        </button>
+        <button class="btn play" id="btnPlay" title="Плей / пауза (Space)" aria-label="Воспроизвести"></button>
+        <button class="btn icon" id="btnFwd10" title="Вперёд 5 с">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 5l7 7-7 7M4 5l7 7-7 7"/></svg>
+        </button>
+        <span class="time" id="timeLabel">00:00:00 / 00:00:00</span>
+        <span class="spacer"></span>
+        <div class="aspect" id="aspectSeg">
+          <button data-aspect="16:9" class="on">16:9</button>
+          <button data-aspect="9:16">9:16</button>
+          <button data-aspect="1:1">1:1</button>
+          <button data-aspect="4:5">4:5</button>
+        </div>
+        <div class="vol">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l4 4V6L7 10H4zM16.5 8.5a5 5 0 010 7"/></svg>
+          <input type="range" id="masterVol" min="0" max="100" value="100" aria-label="Общая громкость" />
+        </div>
+      </div>
+    </section>
+
+    <aside class="right" id="inspector" aria-label="Инспектор"></aside>
+  </main>
+
+  <section class="timeline" aria-label="Таймлайн">
+    <div class="tl-toolbar">
+      <button class="btn sm" id="tlSplit" title="Разделить (S)">Разделить</button>
+      <button class="btn sm" id="tlDelete" title="Удалить (Del)">Удалить</button>
+      <button class="btn sm" id="tlDup" title="Дублировать (Ctrl+D)">Дублировать</button>
+      <button class="btn sm" id="btnAddText" title="Добавить текст">+ Текст</button>
+      <span class="spacer"></span>
+      <span class="tl-count dim" id="tlCount"></span>
+      <span class="tl-dur dim" id="tlDur"></span>
+      <button class="btn sm ghost" id="tlFit" title="Вписать таймлайн в окно">Вписать</button>
+      <input type="range" id="tlZoom" min="12" max="400" value="60" aria-label="Масштаб таймлайна" class="tl-zoom" />
+    </div>
+
+    <div class="tl-body">
+      <div class="tl-labels" id="tlLabels"></div>
+      <div class="tl-scroll" id="tlScroll">
+        <div class="tl-inner" id="tlInner">
+          <div class="tl-ruler" id="tlRuler"></div>
+          <div class="tl-tracks" id="tlTracks"></div>
+          <div class="tl-playhead" id="tlPlayhead"><span class="cap"></span></div>
+          <div class="snap-guide" id="snapGuide"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <nav class="mobile-nav" aria-label="Панели редактора">
+    <button id="mobileLibrary" class="active" aria-pressed="true">Инструменты</button>
+    <button id="mobileInspector" aria-pressed="false">Параметры</button>
+    <button id="mobileProject">Проект</button>
+  </nav>
+</div>
+
+<input type="file" id="fileInput" accept="video/*,image/*,audio/*,.mp4,.webm,.mov,.m4v,.mkv,.mp3,.wav,.ogg,.m4a,.jpg,.jpeg,.png,.webp,.gif" multiple hidden />
+<input type="file" id="projectInput" accept="application/json,.json" hidden />
+<div id="modalRoot"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+/* ===== 01-util.js ===== */
+/* ============================================================
+   CharonCut — браузерный видеоредактор
+   01 · Утилиты
+   ============================================================ */
+'use strict';
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+function uid(prefix = 'id') {
+  return prefix + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+}
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const round = (v, p = 4) => Math.round(v * Math.pow(10, p)) / Math.pow(10, p);
+
+function fmtTime(t, fps = 30) {
+  t = Math.max(0, t || 0);
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  const f = Math.floor((t % 1) * fps);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}:${String(f).padStart(2, '0')}`;
+}
+
+function fmtDur(t) {
+  if (!isFinite(t)) return '—';
+  const m = Math.floor(t / 60);
+  const s = Math.round(t % 60);
+  return m > 0 ? `${m} мин ${s} с` : `${s} с`;
+}
+
+function fmtBytes(b) {
+  if (b < 1024) return b + ' Б';
+  if (b < 1048576) return (b / 1024).toFixed(0) + ' КБ';
+  return (b / 1048576).toFixed(1) + ' МБ';
+}
+
+/* Маленький DOM-билдер: h('div', {class:'x', onclick:fn}, 'текст', childNode) */
+function h(tag, props, ...kids) {
+  const node = document.createElement(tag);
+  if (props) {
+    for (const key in props) {
+      const val = props[key];
+      if (val == null || val === false) continue;
+      if (key === 'class') node.className = val;
+      else if (key === 'style' && typeof val === 'object') Object.assign(node.style, val);
+      else if (key === 'html') node.innerHTML = val;
+      else if (key === 'dataset') Object.assign(node.dataset, val);
+      else if (key.startsWith('on') && typeof val === 'function') node.addEventListener(key.slice(2).toLowerCase(), val);
+      else if (key in node && key !== 'list' && typeof val !== 'object') { try { node[key] = val; } catch (e) { node.setAttribute(key, val); } }
+      else node.setAttribute(key, val);
+    }
+  }
+  for (const kid of kids.flat(4)) {
+    if (kid == null || kid === false) continue;
+    node.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return node;
+}
+
+/* Иконки (inline SVG, без внешних файлов) */
+const ICON_PATHS = {
+  play: 'M8 5v14l11-7z',
+  pause: 'M7 5h4v14H7zM13 5h4v14h-4z',
+  scissors: 'M6 3l9 9M6 21l9-9M6 3v3M6 21v-3M18 12a3 3 0 100 6 3 3 0 000-6zM9 6a3 3 0 11-6 0 3 3 0 016 0z',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+  copy: 'M9 9h11v11H9zM4 15V4h11',
+  undo: 'M9 7L4 12l5 5M4 12h10a6 6 0 010 12h-2',
+  redo: 'M15 7l5 5-5 5M20 12H10a6 6 0 000 12h2',
+  download: 'M12 3v12M7 11l5 5 5-5M4 21h16',
+  upload: 'M12 21V9M7 13l5-5 5 5M4 3h16',
+  plus: 'M12 5v14M5 12h14',
+  volume: 'M4 10v4h3l4 4V6L7 10H4zM16 8a6 6 0 010 8M19 5a10 10 0 010 14',
+  mute: 'M4 10v4h3l4 4V6L7 10H4zM17 9l4 6M21 9l-4 6',
+  zoomin: 'M11 4a7 7 0 100 14 7 7 0 000-14zM16 16l4 4M8 11h6M11 8v6',
+  zoomout: 'M11 4a7 7 0 100 14 7 7 0 000-14zM16 16l4 4M8 11h6',
+  image: 'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6',
+  video: 'M3 6h12v12H3zM15 10l6-4v12l-6-4z',
+  audio: 'M9 18V6l10-2v12M9 18a3 3 0 11-6 0 3 3 0 016 0zM19 16a3 3 0 11-6 0 3 3 0 016 0z',
+  text: 'M4 6V4h16v2M12 4v16M8 20h8',
+  filter: 'M4 5h16l-6 7v6l-4 2v-8L4 5z',
+  transition: 'M3 12h8M8 8l4 4-4 4M21 5v14M14 5v14',
+  close: 'M6 6l12 12M18 6L6 18',
+  check: 'M4 12l5 5L20 6',
+  chevron: 'M9 6l6 6-6 6',
+  save: 'M5 4h11l3 3v13H5zM8 4v6h7V4M8 20v-6h8v6',
+  mic: 'M12 3a3 3 0 013 3v6a3 3 0 01-6 0V6a3 3 0 013-3zM5 11a7 7 0 0014 0M12 18v3',
+  help: 'M12 17h.01M9 9a3 3 0 116 0c0 2-3 2-3 4',
+  layers: 'M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5',
+  settings: 'M12 9a3 3 0 100 6 3 3 0 000-6zM19 12l2-1-2-1V8l-2-1V4l-2 1-2-1-2 1-2-1v3L5 8v2l-2 1 2 1v2l2 1v3l2-1 2 1 2-1 2 1v-3l2-1v-2z',
+  speed: 'M12 20a8 8 0 110-16 8 8 0 010 16zM12 12l4-3',
+  eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 100 6 3 3 0 000-6z',
+};
+
+function icon(name, size = 18, extraClass = '') {
+  const path = ICON_PATHS[name] || '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '1.8');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('class', 'ic ' + extraClass);
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('d', path);
+  svg.appendChild(p);
+  return svg;
+}
+
+function toast(msg, kind = 'info', ms = 3200) {
+  const root = document.getElementById('toasts');
+  if (!root) return;
+  const node = h('div', { class: 'toast ' + kind }, msg);
+  root.appendChild(node);
+  requestAnimationFrame(() => node.classList.add('in'));
+  setTimeout(() => {
+    node.classList.remove('in');
+    setTimeout(() => node.remove(), 250);
+  }, ms);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = h('a', { href: url, download: filename });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function debounce(fn, ms) {
+  let t = 0;
+  return function (...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+/* --- IndexedDB: хранение исходников, чтобы проект переживал перезагрузку --- */
+const IDB_NAME = 'clipcut-db';
+const IDB_STORE = 'media';
+let idbPromise = null;
+
+function idb() {
+  if (idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) return reject(new Error('IndexedDB недоступен'));
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return idbPromise;
+}
+
+async function idbAll() {
+  try {
+    const db = await idb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    console.warn('idbAll', e);
+    return [];
+  }
+}
+
+async function idbPut(record) {
+  try {
+    const db = await idb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(record);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    console.warn('idbPut', e);
+    return false;
+  }
+}
+
+async function idbDelete(id) {
+  try {
+    const db = await idb();
+    return await new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).delete(id);
+      tx.oncomplete = () => resolve(true);
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+async function idbClear() {
+  try {
+    const db = await idb();
+    return await new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).clear();
+      tx.oncomplete = () => resolve(true);
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+/* ===== 02-state.js ===== */
+/* ============================================================
+   02 · Состояние проекта, модель данных, история
+   ============================================================ */
+
+const ASPECTS = {
+  '16:9': { w: 1920, h: 1080, label: '16:9' },
+  '9:16': { w: 1080, h: 1920, label: '9:16' },
+  '1:1': { w: 1080, h: 1080, label: '1:1' },
+  '4:5': { w: 1080, h: 1350, label: '4:5' },
+};
+
+/* Дорожки снизу вверх по смыслу, в UI показываются сверху вниз */
+const TRACKS = [
+  { id: 'text', name: 'Текст', kind: 'text', height: 42 },
+  { id: 'overlay', name: 'Наложение', kind: 'video', height: 54 },
+  { id: 'main', name: 'Основная', kind: 'video', height: 62 },
+  { id: 'audio', name: 'Аудио', kind: 'audio', height: 44 },
+];
+
+const FILTERS = [
+  { id: 'none', name: 'Оригинал', css: '' },
+  { id: 'warm', name: 'Тёплый', css: 'saturate(1.15) sepia(.16) contrast(1.03) brightness(1.04)' },
+  { id: 'cool', name: 'Холодный', css: 'saturate(1.06) hue-rotate(-14deg) brightness(1.02) contrast(1.06)' },
+  { id: 'vivid', name: 'Яркий', css: 'saturate(1.5) contrast(1.12) brightness(1.05)' },
+  { id: 'mono', name: 'Ч/Б', css: 'grayscale(1) contrast(1.14)' },
+  { id: 'vintage', name: 'Винтаж', css: 'sepia(.45) saturate(1.1) contrast(.95) brightness(1.03)' },
+  { id: 'cinema', name: 'Кино', css: 'contrast(1.22) saturate(.9) brightness(.96)' },
+  { id: 'soft', name: 'Мягкий', css: 'saturate(1.05) brightness(1.07) blur(.5px)' },
+  { id: 'retro', name: 'Ретро', css: 'sepia(.3) hue-rotate(-10deg) contrast(1.1) saturate(1.25)' },
+  { id: 'night', name: 'Ночь', css: 'brightness(.86) contrast(1.16) saturate(.8) hue-rotate(-8deg)' },
+  { id: 'dream', name: 'Мечта', css: 'brightness(1.1) saturate(1.22) hue-rotate(8deg) blur(.6px)' },
+  { id: 'fade', name: 'Выцветший', css: 'contrast(.9) saturate(.75) brightness(1.12)' },
+];
+
+const TRANSITIONS = [
+  { id: 'none', name: 'Нет', dur: 0 },
+  { id: 'crossfade', name: 'Растворение', dur: 0.6 },
+  { id: 'fadeblack', name: 'Через чёрное', dur: 0.7 },
+  { id: 'slide', name: 'Сдвиг', dur: 0.55 },
+  { id: 'zoom', name: 'Наплыв', dur: 0.6 },
+];
+
+const FONTS = [
+  { id: 'sans', name: 'Системный', stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' },
+  { id: 'serif', name: 'С засечками', stack: 'Georgia, "Times New Roman", serif' },
+  { id: 'mono', name: 'Моно', stack: 'ui-monospace, "SF Mono", Consolas, monospace' },
+  { id: 'impact', name: 'Плотный', stack: 'Impact, "Arial Black", "Haettenschweiler", sans-serif' },
+  { id: 'rounded', name: 'Округлый', stack: '"Trebuchet MS", "Segoe UI", sans-serif' },
+];
+
+const TEXT_PRESETS = [
+  { name: 'Заголовок', sample: 'Заголовок', text: { content: 'ЗАГОЛОВОК', size: 96, weight: 800, color: '#ffffff', strokeW: 0, bgOpacity: 0, letter: 0.02 } },
+  { name: 'Подзаголовок', sample: 'Подзаголовок', text: { content: 'Подзаголовок', size: 64, weight: 600, color: '#ffffff', strokeW: 0, bgOpacity: 0 } },
+  { name: 'Субтитры', sample: 'Субтитры', text: { content: 'Текст субтитра', size: 54, weight: 600, color: '#ffffff', bgOpacity: 0.55, y: 0.84, strokeW: 0 } },
+  { name: 'Плашка', sample: 'Плашка', text: { content: 'ВАЖНО', size: 60, weight: 800, color: '#0b0b0e', bgColor: '#22d3ee', bgOpacity: 1, y: 0.16 } },
+  { name: 'Неон', sample: 'Неон', text: { content: 'NEON', size: 92, weight: 800, color: '#a5f3fc', strokeW: 0, shadow: true } },
+  { name: 'Контур', sample: 'Контур', text: { content: 'КОНТУР', size: 88, weight: 800, color: 'rgba(0,0,0,0)', strokeW: 3, stroke: '#ffffff' } },
+];
+
+/* Глифы из блоков Geometric Shapes / Dingbats / Misc Symbols:
+   они есть в стандартных шрифтах Windows, macOS, Linux и Android,
+   поэтому не превращаются в «квадратики» на чужой системе. */
+const STICKERS = ['★', '✦', '❤', '✔', '✚', '✱', '▲', '●', '◆', '➜', '✿', '❄', '☀', '☂', '♫', '⚑'];
+
+const STORAGE_KEY = 'clipcut.project.v1';
+
+const state = {
+  project: null,
+  media: new Map(),
+  selection: null,          // id клипа
+  playhead: 0,              // сек
+  playing: false,
+  pxPerSec: 60,
+  activeTab: 'media',
+  masterVolume: 1,
+  undoStack: [],
+  redoStack: [],
+  needsDraw: true,
+  exporting: false,
+  filterTargetAll: false,
+  lastSave: 0,
+};
+
+/* ---------- модель ---------- */
+
+function defaultTransform() {
+  return { x: 0, y: 0, scale: 100, rot: 0 };
+}
+
+function defaultText() {
+  return {
+    content: 'Ваш текст',
+    font: 'sans',
+    size: 72,
+    weight: 700,
+    color: '#ffffff',
+    align: 'center',
+    stroke: '#000000',
+    strokeW: 0,
+    bgColor: '#000000',
+    bgOpacity: 0,
+    shadow: false,
+    x: 0.5,
+    y: 0.5,
+    letter: 0,
+    lineH: 1.22,
+  };
+}
+
+function makeClip(partial = {}) {
+  return Object.assign(
+    {
+      id: uid('clip'),
+      track: 'main',
+      mediaId: null,
+      name: '',
+      start: 0,
+      duration: 3,
+      inPoint: 0,
+      speed: 1,
+      volume: 1,
+      muted: false,
+      opacity: 100,
+      filter: 'none',
+      adj: { b: 100, c: 100, s: 100 },
+      transform: defaultTransform(),
+      fadeIn: 0,
+      fadeOut: 0,
+      transition: { type: 'none', dur: 0 },
+      text: null,
+    },
+    partial
+  );
+}
+
+function createProject(name = 'Новый проект', aspect = '16:9') {
+  const a = ASPECTS[aspect] || ASPECTS['16:9'];
+  return {
+    version: 1,
+    id: uid('proj'),
+    name,
+    aspect,
+    width: a.w,
+    height: a.h,
+    fps: 30,
+    clips: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
+function applyAspect(aspect) {
+  const a = ASPECTS[aspect];
+  if (!a) return;
+  state.project.aspect = aspect;
+  state.project.width = a.w;
+  state.project.height = a.h;
+  markDirty();
+}
+
+/* ---------- доступ к клипам ---------- */
+
+function findClip(id) {
+  return state.project.clips.find((c) => c.id === id) || null;
+}
+
+function clipsOf(track) {
+  return state.project.clips.filter((c) => c.track === track);
+}
+
+function clipsOfTrackSorted(track, excludeId) {
+  return clipsOf(track)
+    .filter((c) => c.id !== excludeId)
+    .sort((a, b) => a.start - b.start);
+}
+
+function selectedClip() {
+  return state.selection ? findClip(state.selection) : null;
+}
+
+function projectDuration() {
+  let d = 0;
+  for (const c of state.project.clips) d = Math.max(d, c.start + c.duration);
+  return d;
+}
+
+function trackEnd(track) {
+  let d = 0;
+  for (const c of clipsOf(track)) d = Math.max(d, c.start + c.duration);
+  return d;
+}
+
+function prevClipOf(track, clip) {
+  const list = clipsOfTrackSorted(track, clip.id);
+  let best = null;
+  for (const c of list) {
+    if (c.start + c.duration <= clip.start + 1e-6) {
+      if (!best || c.start > best.start) best = c;
+    }
+  }
+  return best;
+}
+
+/* Свободное место под дорожку: возвращает место после последнего клипа */
+function appendStart(track) {
+  return round(trackEnd(track), 3);
+}
+
+/* ---------- мутации с историей ---------- */
+
+function markDirty() {
+  state.needsDraw = true;
+  state.project.updatedAt = Date.now();
+  scheduleSave();
+}
+
+function pushHistory() {
+  try {
+    state.undoStack.push(JSON.stringify(state.project));
+    if (state.undoStack.length > 80) state.undoStack.shift();
+    state.redoStack.length = 0;
+  } catch (e) { /* ignore */ }
+}
+
+function undo() {
+  if (!state.undoStack.length) return toast('Нечего отменять', 'warn');
+  state.redoStack.push(JSON.stringify(state.project));
+  state.project = JSON.parse(state.undoStack.pop());
+  if (state.selection && !findClip(state.selection)) state.selection = null;
+  refreshAll();
+  toast('Отменено');
+}
+
+function redo() {
+  if (!state.redoStack.length) return toast('Нечего повторять', 'warn');
+  state.undoStack.push(JSON.stringify(state.project));
+  state.project = JSON.parse(state.redoStack.pop());
+  if (state.selection && !findClip(state.selection)) state.selection = null;
+  refreshAll();
+  toast('Повторено');
+}
+
+/* commit(fn): изменение проекта с записью в историю и полным обновлением UI */
+function commit(fn, opts = {}) {
+  pushHistory();
+  fn();
+  if (opts.keepSelection === false) state.selection = null;
+  markDirty();
+  refreshAll();
+}
+
+/* ---------- сохранение проекта ---------- */
+
+const scheduleSave = debounce(() => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.project));
+    state.lastSave = Date.now();
+    flashSaved();
+  } catch (e) {
+    console.warn('save failed', e);
+  }
+}, 700);
+
+function saveNow() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.project));
+    state.lastSave = Date.now();
+    flashSaved();
+    toast('Проект сохранён в браузере', 'ok');
+  } catch (e) {
+    toast('Не удалось сохранить: ' + e.message, 'err');
+  }
+}
+
+function flashSaved() {
+  const n = $('#saveHint');
+  if (!n) return;
+  n.textContent = 'Сохранено';
+  n.classList.add('show');
+  clearTimeout(flashSaved._t);
+  flashSaved._t = setTimeout(() => n.classList.remove('show'), 1400);
+}
+
+function loadProject() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (!p || !Array.isArray(p.clips)) return null;
+    return p;
+  } catch (e) {
+    return null;
+  }
+}
+
+function resetProject() {
+  state.project = createProject('Новый проект', state.project ? state.project.aspect : '16:9');
+  state.selection = null;
+  state.playhead = 0;
+  stopPlayback();
+  refreshAll();
+  saveNow();
+}
+
+/* ===== 03-media.js ===== */
+/* ============================================================
+   03 · Медиатека: импорт, превью, миниатюры, IndexedDB, SFX, запись
+   ============================================================ */
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Не удалось прочитать изображение'));
+    img.src = url;
+  });
+}
+
+function waitEvent(el, name, timeout = 12000) {
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const onOk = () => { if (done) return; done = true; cleanup(); resolve(); };
+    const onErr = () => { if (done) return; done = true; cleanup(); reject(new Error('Ошибка медиа: ' + name)); };
+    const timer = setTimeout(() => onErr(), timeout);
+    function cleanup() {
+      clearTimeout(timer);
+      el.removeEventListener(name, onOk);
+      el.removeEventListener('error', onErr);
+    }
+    el.addEventListener(name, onOk, { once: true });
+    el.addEventListener('error', onErr, { once: true });
+  });
+}
+
+function makeThumbFromSource(src, sw, sh, maxW = 220) {
+  try {
+    const ratio = sh / sw;
+    const w = Math.min(maxW, Math.max(48, sw));
+    const hgt = Math.max(1, Math.round(w * ratio));
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = hgt;
+    const c = cv.getContext('2d');
+    c.drawImage(src, 0, 0, w, hgt);
+    return cv.toDataURL('image/jpeg', 0.72);
+  } catch (e) {
+    return null;
+  }
+}
+
+/* WebM/MediaRecorder-файлы часто не содержат длительность в метаданных:
+   duration === Infinity. Хак — перемотка «в бесконечность» заставляет браузер
+   просканировать файл. Делаем это на ОТДЕЛЬНОМ элементе, чтобы не сломать
+   декодер основного (иначе элемент навсегда застревает в readyState=1). */
+async function probeDurationFromUrl(url, known, type) {
+  if (isFinite(known) && known > 0) return known;
+  const el = document.createElement(type === 'audio' ? 'audio' : 'video');
+  el.preload = 'metadata';
+  el.muted = true;
+  el.src = url;
+  el.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none';
+  document.body.appendChild(el);
+  let result = 0;
+  try {
+    await waitEvent(el, 'loadedmetadata', 8000);
+    if (isFinite(el.duration) && el.duration > 0) result = el.duration;
+    else {
+      el.currentTime = 1e101;
+      await waitEvent(el, 'seeked', 8000);
+      if (isFinite(el.duration) && el.duration > 0) result = el.duration;
+    }
+  } catch (e) {
+    result = 0;
+  } finally {
+    try { el.removeAttribute('src'); el.load(); } catch (e) {}
+    el.remove();
+  }
+  return result;
+}
+
+async function captureVideoThumb(el) {
+  try {
+    const target = Math.min(0.15, Math.max(0, (el.duration || 1) * 0.1));
+    if (Math.abs(el.currentTime - target) > 0.01) {
+      el.currentTime = target;
+      await waitEvent(el, 'seeked', 6000);
+    }
+    return makeThumbFromSource(el, el.videoWidth || 320, el.videoHeight || 180);
+  } catch (e) {
+    return null;
+  }
+}
+
+/* Импорт файлов: probe → миниатюра → IndexedDB → медиатека */
+async function importFiles(files, opts = {}) {
+  const list = Array.from(files || []).filter((f) =>
+    /^video\//.test(f.type) || /^image\//.test(f.type) || /^audio\//.test(f.type) || /\.(mp4|webm|mov|m4v|mkv|mp3|wav|ogg|m4a|aac|jpg|jpeg|png|webp|gif|avif)$/i.test(f.name)
+  );
+  if (!list.length) {
+    toast('Нужны видео, фото или аудиофайлы', 'warn');
+    return [];
+  }
+  const created = [];
+  for (const file of list) {
+    try {
+      const media = await addMediaFile(file, opts);
+      created.push(media);
+    } catch (e) {
+      console.warn('import failed', file.name, e);
+      toast(`Не удалось импортировать «${file.name}»`, 'err');
+    }
+  }
+  if (created.length) {
+    refreshPanel();
+    refreshTimeline();
+    refreshInspector();
+    redraw();
+    toast(`Добавлено в проект: ${created.length}`, 'ok');
+  }
+  return created;
+}
+
+async function addMediaFile(file, opts = {}) {
+  const id = uid('m');
+  const isImage = /^image\//.test(file.type) || /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(file.name);
+  const isAudio = /^audio\//.test(file.type) || /\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name);
+  const type = isImage ? 'image' : isAudio ? 'audio' : 'video';
+  const url = URL.createObjectURL(file);
+  const media = {
+    id, type, url, blob: file,
+    name: file.name.replace(/\.[^.]+$/, ''),
+    size: file.size,
+    duration: 0, width: 0, height: 0, thumb: null,
+    el: null, srcNode: null, gains: new Map(),
+  };
+
+  if (type === 'image') {
+    const img = await loadImage(url);
+    media.el = img;
+    media.width = img.naturalWidth;
+    media.height = img.naturalHeight;
+    media.duration = 0;
+    media.thumb = makeThumbFromSource(img, img.naturalWidth, img.naturalHeight);
+  } else {
+    const el = document.createElement(type === 'audio' ? 'audio' : 'video');
+    el.src = url;
+    el.preload = 'auto';
+    el.playsInline = true;
+    el.setAttribute('playsinline', '');
+    el.volume = 1;
+    el.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+    document.body.appendChild(el);
+    await waitEvent(el, 'loadedmetadata');
+    media.el = el;
+    media.duration = await probeDurationFromUrl(url, el.duration, type);
+    media.width = el.videoWidth || 0;
+    media.height = el.videoHeight || 0;
+    if (type === 'video') media.thumb = await captureVideoThumb(el);
+    if (!media.thumb) media.thumb = audioWavePlaceholderSvg(media.name);
+  }
+
+  state.media.set(id, media);
+  ensureSource(media);
+
+  /* сохраняем исходник в IndexedDB (чтобы проект восстанавливался) */
+  idbPut({
+    id, name: media.name, type,
+    blob: file,
+    duration: media.duration,
+    width: media.width,
+    height: media.height,
+    thumb: media.thumb,
+  });
+
+  if (opts.addToTimeline !== false) addMediaToTimeline(media);
+  return media;
+}
+
+function audioWavePlaceholderSvg(seed) {
+  const bars = 24;
+  let rects = '';
+  let rnd = 0;
+  for (let i = 0; i < seed.length; i++) rnd = (rnd * 31 + seed.charCodeAt(i)) % 9973;
+  for (let i = 0; i < bars; i++) {
+    rnd = (rnd * 1103515245 + 12345) % 2147483648;
+    const hgt = 12 + (rnd % 46);
+    rects += `<rect x="${i * 8 + 2}" y="${(64 - hgt) / 2}" width="5" height="${hgt}" rx="2.5" fill="#6d8cff" opacity="0.85"/>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="64" viewBox="0 0 200 64"><rect width="200" height="64" fill="#171a24"/>${rects}</svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(svg);
+}
+
+function defaultDurationFor(media) {
+  if (media.type === 'image') return 5;
+  return Math.max(0.2, round(media.duration || 5, 2));
+}
+
+function addMediaToTimeline(media, targetTrack) {
+  pushHistory();
+  const track = targetTrack || (media.type === 'audio' ? 'audio' : 'main');
+  const duration = defaultDurationFor(media);
+  const start = appendStart(track);
+  const clip = makeClip({
+    track,
+    mediaId: media.id,
+    start: round(start, 3),
+    duration,
+    name: media.name,
+    speed: 1,
+  });
+  /* видео на основной дорожке: подгоняем кадр по размеру проекта */
+  state.project.clips.push(clip);
+  state.selection = clip.id;
+  markDirty();
+  refreshAll();
+  return clip;
+}
+
+/* Быстрое добавление с дорожки «Наложение» */
+function addMediaAsOverlay(media) {
+  const clip = addMediaToTimeline(media, 'overlay');
+  const c = findClip(clip.id);
+  if (c) {
+    c.start = round(state.playhead, 3);
+    c.transform = { x: 0.22, y: -0.22, scale: 38, rot: 0 };
+    c.duration = Math.min(c.duration, 4);
+    markDirty();
+    refreshAll();
+  }
+  return clip;
+}
+
+async function removeMedia(id) {
+  const media = state.media.get(id);
+  if (!media) return;
+  const used = state.project.clips.some((c) => c.mediaId === id);
+  if (used && !confirm('Файл используется на таймлайне. Удалить вместе с клипами?')) return;
+  pushHistory();
+  state.project.clips = state.project.clips.filter((c) => c.mediaId !== id);
+  if (media.el) {
+    try { media.el.pause(); } catch (e) {}
+    if (media.type !== 'image') media.el.remove();
+  }
+  try { URL.revokeObjectURL(media.url); } catch (e) {}
+  state.media.delete(id);
+  idbDelete(id);
+  if (state.selection && !findClip(state.selection)) state.selection = null;
+  markDirty();
+  refreshAll();
+}
+
+/* Восстановление медиа из IndexedDB при загрузке страницы */
+async function restoreMediaFromIdb() {
+  const rows = await idbAll();
+  for (const row of rows) {
+    if (state.media.has(row.id)) continue;
+    try {
+      const url = URL.createObjectURL(row.blob);
+      const media = {
+        id: row.id, name: row.name, type: row.type, url,
+        blob: row.blob,
+        duration: row.duration || 0,
+        width: row.width || 0,
+        height: row.height || 0,
+        thumb: row.thumb || null,
+        el: null, srcNode: null, gains: new Map(),
+      };
+      if (media.type === 'image') {
+        const img = await loadImage(url);
+        media.el = img;
+        media.width = media.width || img.naturalWidth;
+        media.height = media.height || img.naturalHeight;
+        if (!media.thumb) media.thumb = makeThumbFromSource(img, img.naturalWidth, img.naturalHeight);
+      } else {
+        const el = document.createElement(media.type === 'audio' ? 'audio' : 'video');
+        el.src = url;
+        el.preload = 'auto';
+        el.playsInline = true;
+        el.volume = 1;
+        el.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+        document.body.appendChild(el);
+        await waitEvent(el, 'loadedmetadata', 8000);
+        media.el = el;
+        if (!media.duration) media.duration = await probeDurationFromUrl(url, el.duration, media.type);
+        if (!media.thumb && media.type === 'video') media.thumb = await captureVideoThumb(el);
+        if (!media.thumb) media.thumb = audioWavePlaceholderSvg(media.name || 'audio');
+      }
+      state.media.set(media.id, media);
+    } catch (e) {
+      console.warn('restore media failed', row && row.id, e);
+    }
+  }
+  /* чистим клипы, у которых не восстановился исходник */
+  const before = state.project.clips.length;
+  state.project.clips = state.project.clips.filter((c) => !c.mediaId || state.media.has(c.mediaId));
+  if (state.project.clips.length !== before) {
+    console.info('Удалены клипы без исходников:', before - state.project.clips.length);
+  }
+}
+
+/* ---------- генератор звуковых эффектов (Web Audio → WAV) ---------- */
+function encodeWav(buffer) {
+  const numCh = buffer.numberOfChannels;
+  const len = buffer.length;
+  const sr = buffer.sampleRate;
+  const bytes = 44 + len * numCh * 2;
+  const ab = new ArrayBuffer(bytes);
+  const view = new DataView(ab);
+  const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF'); view.setUint32(4, bytes - 8, true); writeStr(8, 'WAVE');
+  writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, numCh, true); view.setUint32(24, sr, true);
+  view.setUint32(28, sr * numCh * 2, true); view.setUint16(32, numCh * 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data'); view.setUint32(40, len * numCh * 2, true);
+  let off = 44;
+  const chans = [];
+  for (let c = 0; c < numCh; c++) chans.push(buffer.getChannelData(c));
+  for (let i = 0; i < len; i++) {
+    for (let c = 0; c < numCh; c++) {
+      const s = clamp(chans[c][i], -1, 1);
+      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      off += 2;
+    }
+  }
+  return new Blob([ab], { type: 'audio/wav' });
+}
+
+async function renderSfx(kind) {
+  const sr = 44100;
+  const duration = kind === 'swell' ? 2.4 : kind === 'drop' ? 1.8 : kind === 'whoosh' ? 0.9 : 0.6;
+  const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OfflineCtx) throw new Error('OfflineAudioContext не поддерживается');
+  const ctx = new OfflineCtx(2, Math.floor(sr * duration), sr);
+
+  if (kind === 'tick') {
+    for (let i = 0; i < 2; i++) {
+      const t0 = 0.02 + i * 0.28;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(i === 0 ? 1800 : 1300, t0);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(0.5, t0 + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0); osc.stop(t0 + 0.16);
+    }
+  } else if (kind === 'swell') {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, 0);
+    osc.frequency.exponentialRampToValueAtTime(720, duration);
+    g.gain.setValueAtTime(0.0001, 0);
+    g.gain.exponentialRampToValueAtTime(0.45, duration * 0.92);
+    g.gain.exponentialRampToValueAtTime(0.0001, duration);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(0); osc.stop(duration);
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx, duration);
+    const nf = ctx.createBiquadFilter();
+    nf.type = 'bandpass';
+    nf.frequency.setValueAtTime(400, 0);
+    nf.frequency.exponentialRampToValueAtTime(4000, duration);
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, 0);
+    ng.gain.exponentialRampToValueAtTime(0.18, duration * 0.95);
+    ng.gain.exponentialRampToValueAtTime(0.0001, duration);
+    noise.connect(nf).connect(ng).connect(ctx.destination);
+    noise.start(0);
+  } else if (kind === 'drop') {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(140, 0);
+    osc.frequency.exponentialRampToValueAtTime(42, duration * 0.75);
+    g.gain.setValueAtTime(0.0001, 0);
+    g.gain.linearRampToValueAtTime(0.85, 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, duration);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(0); osc.stop(duration);
+  } else {
+    /* whoosh */
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx, duration);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 1.1;
+    bp.frequency.setValueAtTime(260, 0);
+    bp.frequency.exponentialRampToValueAtTime(5200, duration * 0.65);
+    bp.frequency.exponentialRampToValueAtTime(700, duration);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, 0);
+    g.gain.linearRampToValueAtTime(0.5, duration * 0.45);
+    g.gain.exponentialRampToValueAtTime(0.0001, duration);
+    noise.connect(bp).connect(g).connect(ctx.destination);
+    noise.start(0);
+  }
+
+  const buf = await ctx.startRendering();
+  return encodeWav(buf);
+}
+
+let noiseCache = new Map();
+function makeNoiseBuffer(ctx, duration) {
+  const key = ctx.sampleRate + ':' + duration;
+  if (noiseCache.has(key)) return noiseCache.get(key);
+  const len = Math.floor(ctx.sampleRate * duration);
+  const b = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = b.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  noiseCache.set(key, b);
+  return b;
+}
+
+const SFX_PRESETS = [
+  { id: 'whoosh', name: 'Whoosh', desc: 'пролёт' },
+  { id: 'swell', name: 'Swell', desc: 'нарастание' },
+  { id: 'drop', name: 'Bass drop', desc: 'удар' },
+  { id: 'tick', name: 'Tick', desc: 'щелчок' },
+];
+
+async function addSfx(kind, name) {
+  const blob = await renderSfx(kind);
+  const file = new File([blob], `${name || kind}.wav`, { type: 'audio/wav' });
+  return addMediaFile(file, { addToTimeline: true });
+}
+
+/* ---------- запись голоса ---------- */
+let recorder = null;
+let recChunks = [];
+let recStart = 0;
+let recTimer = 0;
+
+async function toggleRecording(btn) {
+  if (recorder && recorder.state === 'recording') {
+    recorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recorder = new MediaRecorder(stream);
+    recChunks = [];
+    recorder.ondataavailable = (e) => { if (e.data.size) recChunks.push(e.data); };
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      clearInterval(recTimer);
+      const btnEl = document.getElementById('btnRecord');
+      if (btnEl) { btnEl.classList.remove('rec'); btnEl.textContent = 'Записать голос'; }
+      if (!recChunks.length) return;
+      const blob = new Blob(recChunks, { type: recChunks[0].type || 'audio/webm' });
+      const ext = (blob.type.includes('mp4') ? 'm4a' : 'webm');
+      const file = new File([blob], `Запись ${new Date().toLocaleTimeString('ru-RU')}.${ext}`, { type: blob.type });
+      try {
+        await addMediaFile(file, { addToTimeline: true });
+        refreshPanel();
+        toast('Запись добавлена на таймлайн', 'ok');
+      } catch (e) {
+        toast('Не удалось добавить запись', 'err');
+      }
+      recorder = null;
+    };
+    recorder.start();
+    recStart = performance.now();
+    const btnEl = document.getElementById('btnRecord');
+    if (btnEl) {
+      btnEl.classList.add('rec');
+      recTimer = setInterval(() => {
+        const s = ((performance.now() - recStart) / 1000).toFixed(1);
+        btnEl.textContent = `Стоп ${s} с`;
+      }, 100);
+    }
+    toast('Идёт запись с микрофона…', 'info');
+  } catch (e) {
+    toast('Микрофон недоступен: ' + (e.message || e.name), 'err');
+  }
+}
+
+/* ===== 04-audio.js ===== */
+/* ============================================================
+   04 · Звуковой граф: микширование, громкость, фейды, экспорт аудио
+   ============================================================ */
+
+let audioCtx = null;
+let masterGain = null;
+let streamDest = null;
+
+/* AudioContext можно создать только «по жесту» пользователя.
+   Пока он suspended, подключать медиаэлементы к графу нельзя:
+   иначе браузер приостанавливает воспроизведение самого видео. */
+function audioRunning() {
+  return !!(audioCtx && audioCtx.state === 'running');
+}
+
+function wakeAudio() {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'running') {
+    for (const m of state.media.values()) ensureSource(m);
+    return;
+  }
+  const p = audioCtx.resume();
+  if (p && p.then) {
+    p.then(() => {
+      if (audioRunning()) for (const m of state.media.values()) ensureSource(m);
+    }).catch(() => {});
+  }
+}
+
+function ensureAudio() {
+  if (audioCtx) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  try {
+    audioCtx = new AC();
+  } catch (e) {
+    console.warn('AudioContext', e);
+    return null;
+  }
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 1;
+  masterGain.connect(audioCtx.destination);
+  if (audioCtx.createMediaStreamDestination) {
+    streamDest = audioCtx.createMediaStreamDestination();
+    masterGain.connect(streamDest);
+  }
+  if (audioCtx.state !== 'running') wakeAudio();
+  if (audioRunning()) for (const m of state.media.values()) ensureSource(m);
+  return audioCtx;
+}
+
+function ensureSource(media) {
+  if (!audioRunning() || !media || !media.el || media.srcNode) return;
+  if (media.type === 'image') return;
+  try {
+    media.srcNode = audioCtx.createMediaElementSource(media.el);
+  } catch (e) {
+    /* элемент уже был подключён к другому контексту — игнорируем */
+  }
+}
+
+function clipGain(media, clipId) {
+  if (!audioRunning() || !media) return null;
+  ensureSource(media);
+  if (!media.srcNode) return null;
+  let g = media.gains.get(clipId);
+  if (!g) {
+    g = audioCtx.createGain();
+    g.gain.value = 0;
+    media.srcNode.connect(g);
+    g.connect(masterGain);
+    media.gains.set(clipId, g);
+  }
+  return g;
+}
+
+/* Множитель громкости клипа в момент t (учитывает фейды и mute) */
+function gainFactorAt(clip, t) {
+  if (clip.muted) return 0;
+  const local = t - clip.start;
+  if (local < -0.05 || local > clip.duration + 0.05) return 0;
+  let f = 1;
+  if (clip.fadeIn > 0 && local < clip.fadeIn) f = Math.max(0, local / clip.fadeIn);
+  if (clip.fadeOut > 0 && local > clip.duration - clip.fadeOut) {
+    f = Math.min(f, Math.max(0, (clip.duration - local) / clip.fadeOut));
+  }
+  return clamp(f, 0, 1);
+}
+
+function updateAudioGains(t) {
+  if (!audioRunning() || !masterGain) return;
+  masterGain.gain.setTargetAtTime(state.masterVolume, audioCtx.currentTime, 0.02);
+  for (const clip of state.project.clips) {
+    const media = state.media.get(clip.mediaId);
+    if (!media || media.type === 'image') continue;
+    const g = clipGain(media, clip.id);
+    if (!g) continue;
+    const target = clamp(clip.volume, 0, 2) * gainFactorAt(clip, t);
+    g.gain.setTargetAtTime(target, audioCtx.currentTime, 0.015);
+  }
+  /* освобождаем гейны удалённых клипов */
+  for (const media of state.media.values()) {
+    if (!media.gains) continue;
+    for (const [clipId, g] of media.gains) {
+      if (!findClip(clipId)) {
+        try { g.disconnect(); media.srcNode && media.srcNode.disconnect(g); } catch (e) {}
+        media.gains.delete(clipId);
+      }
+    }
+  }
+}
+
+function silenceAll() {
+  if (!audioCtx) return;
+  for (const media of state.media.values()) {
+    if (!media.gains) continue;
+    for (const g of media.gains.values()) {
+      try { g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.01); } catch (e) {}
+    }
+  }
+}
+
+function muteMediaElements(muted) {
+  for (const media of state.media.values()) {
+    if (!media.el || media.type === 'image') continue;
+    try { media.el.muted = muted; } catch (e) {}
+  }
+}
+
+/* ===== 05-render.js ===== */
+/* ============================================================
+   05 · Рендерер кадра: композитинг, фильтры, переходы, текст
+   ============================================================ */
+
+let drawCanvas = null;
+let drawCtx = null;
+
+function initRenderer() {
+  drawCanvas = document.getElementById('preview');
+  if (drawCanvas) drawCtx = drawCanvas.getContext('2d', { alpha: false });
+}
+
+function fontStack(id) {
+  const f = FONTS.find((x) => x.id === id) || FONTS[0];
+  return f.stack;
+}
+
+function filterString(clip) {
+  const preset = FILTERS.find((f) => f.id === clip.filter);
+  const parts = [];
+  if (preset && preset.css) parts.push(preset.css);
+  const a = clip.adj || { b: 100, c: 100, s: 100 };
+  if (a.b !== 100) parts.push(`brightness(${a.b / 100})`);
+  if (a.c !== 100) parts.push(`contrast(${a.c / 100})`);
+  if (a.s !== 100) parts.push(`saturate(${a.s / 100})`);
+  return parts.length ? parts.join(' ') : 'none';
+}
+
+function opacityAt(clip, t) {
+  const base = (clip.opacity == null ? 100 : clip.opacity) / 100;
+  const local = t - clip.start;
+  let f = 1;
+  if (clip.fadeIn > 0 && local < clip.fadeIn) f = Math.max(0, local / clip.fadeIn);
+  if (clip.fadeOut > 0 && local > clip.duration - clip.fadeOut) {
+    f = Math.min(f, Math.max(0, (clip.duration - local) / clip.fadeOut));
+  }
+  return clamp(base * f, 0, 1);
+}
+
+function clipIsActive(clip, t, pad = 0) {
+  return t >= clip.start - pad && t < clip.start + clip.duration + pad;
+}
+
+/* Перевод «время таймлайна» → «время исходника» */
+function sourceTimeAt(clip, t) {
+  return clip.inPoint + clamp(t - clip.start, 0, clip.duration) * clip.speed;
+}
+
+/* В режиме реального времени мы не можем «заморозить» видео,
+   поэтому кадр берётся у самого элемента; синхронизацией занимается syncMedia(). */
+
+function drawMediaFit(ctx, srcEl, sw, sh, transform, W, H) {
+  if (!sw || !sh) { sw = srcEl.videoWidth || srcEl.width || W; sh = srcEl.videoHeight || srcEl.height || H; }
+  const cover = Math.max(W / sw, H / sh);
+  const tr = transform || { x: 0, y: 0, scale: 100, rot: 0 };
+  const scale = cover * ((tr.scale == null ? 100 : tr.scale) / 100);
+  const dw = sw * scale;
+  const dh = sh * scale;
+  const cx = W / 2 + (tr.x || 0) * W;
+  const cy = H / 2 + (tr.y || 0) * H;
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (tr.rot) ctx.rotate((tr.rot * Math.PI) / 180);
+  ctx.drawImage(srcEl, -dw / 2, -dh / 2, dw, dh);
+  ctx.restore();
+  return { dw, dh };
+}
+
+function drawClipVisual(clip, t, alpha, extraOffsetX = 0) {
+  const media = state.media.get(clip.mediaId);
+  if (!media) return false;
+  const W = state.project.width;
+  const H = state.project.height;
+  const ctx = drawCtx;
+
+  let srcEl = media.el;
+  if (media.type !== 'image') {
+    if (!srcEl || srcEl.readyState < 2) return false;
+  } else if (!srcEl || !srcEl.complete) return false;
+
+  ctx.save();
+  ctx.globalAlpha = clamp(alpha, 0, 1);
+  const fs = filterString(clip);
+  if (fs !== 'none') ctx.filter = fs;
+  const tr = Object.assign({}, clip.transform);
+  if (extraOffsetX) tr.x = (tr.x || 0) + extraOffsetX;
+  drawMediaFit(ctx, srcEl, media.width, media.height, tr, W, H);
+  ctx.restore();
+  return true;
+}
+
+/* ---------- текст ---------- */
+
+function wrapLines(ctx, text, maxWidth) {
+  const out = [];
+  const paragraphs = String(text).split('\n');
+  for (const para of paragraphs) {
+    const words = para.split(' ');
+    let line = '';
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        out.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+function textFontCss(tx) {
+  return `${tx.weight || 700} ${Math.max(4, tx.size || 72)}px ${fontStack(tx.font)}`;
+}
+
+function drawTextClip(clip, t, alpha) {
+  const tx = clip.text;
+  if (!tx) return;
+  const W = state.project.width;
+  const H = state.project.height;
+  const ctx = drawCtx;
+  const k = H / 1080; /* масштаб относительно 1080p */
+  const fontSize = Math.max(8, tx.size * k);
+  const font = `${tx.weight || 700} ${fontSize}px ${fontStack(tx.font)}`;
+
+  ctx.save();
+  ctx.globalAlpha = clamp(alpha, 0, 1);
+  ctx.font = font;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  if (tx.letter) {
+    /* межбуквенное расстояние поддерживается не везде — рисуем вручную */
+    ctx.letterSpacing = `${tx.letter}em`;
+  }
+  const maxWidth = W * 0.9;
+  const lines = wrapLines(ctx, tx.content || '', maxWidth);
+  const lineH = fontSize * (tx.lineH || 1.22);
+  const totalH = lineH * lines.length;
+  const cx = (tx.x == null ? 0.5 : tx.x) * W;
+  const cyTop = (tx.y == null ? 0.5 : tx.y) * H - totalH / 2 + lineH / 2;
+
+  /* фон-плашка за весь блок */
+  if (tx.bgOpacity > 0) {
+    let wMax = 0;
+    for (const l of lines) wMax = Math.max(wMax, ctx.measureText(l).width);
+    const padX = fontSize * 0.34;
+    const padY = fontSize * 0.22;
+    ctx.save();
+    ctx.globalAlpha = clamp(alpha, 0, 1) * clamp(tx.bgOpacity, 0, 1);
+    ctx.fillStyle = tx.bgColor || '#000000';
+    const rx = Math.min(fontSize * 0.3, 24 * k);
+    const bw = wMax + padX * 2;
+    const bh = totalH + padY * 2;
+    roundRect(ctx, cx - bw / 2, cyTop - lineH / 2 - padY, bw, bh, rx);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const ly = cyTop + i * lineH;
+    if (tx.shadow) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.65)';
+      ctx.shadowBlur = fontSize * 0.45;
+      ctx.shadowOffsetY = fontSize * 0.08;
+      ctx.fillStyle = tx.color || '#fff';
+      ctx.fillText(lines[i], cx, ly);
+      ctx.restore();
+      /* неоновое свечение */
+      ctx.save();
+      ctx.globalAlpha = clamp(alpha, 0, 1) * 0.6;
+      ctx.shadowColor = tx.color || '#fff';
+      ctx.shadowBlur = fontSize * 0.8;
+      ctx.fillStyle = tx.color || '#fff';
+      ctx.fillText(lines[i], cx, ly);
+      ctx.restore();
+    }
+    if (tx.strokeW > 0) {
+      ctx.lineWidth = tx.strokeW * k;
+      ctx.strokeStyle = tx.stroke || '#000';
+      ctx.lineJoin = 'round';
+      ctx.strokeText(lines[i], cx, ly);
+    }
+    ctx.fillStyle = tx.color || '#ffffff';
+    ctx.fillText(lines[i], cx, ly);
+  }
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, hgt, r) {
+  const rr = Math.min(r, w / 2, hgt / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + hgt, rr);
+  ctx.arcTo(x + w, y + hgt, x, y + hgt, rr);
+  ctx.arcTo(x, y + hgt, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+/* ---------- отрисовка дорожки ---------- */
+
+function activeClipsOn(track, t) {
+  return clipsOf(track)
+    .filter((c) => clipIsActive(c, t))
+    .sort((a, b) => a.start - b.start);
+}
+
+function drawTrack(track, t) {
+  const clips = clipsOf(track).sort((a, b) => a.start - b.start);
+  for (const clip of clips) {
+    if (!clipIsActive(clip, t)) continue;
+    const tr = clip.transition || { type: 'none', dur: 0 };
+    const prev = prevClipOf(track, clip);
+    const inTransition = tr.dur > 0 && prev && t < clip.start + tr.dur;
+
+    if (inTransition) {
+      const p = clamp((t - clip.start) / tr.dur, 0, 1);
+      const eased = p * p * (3 - 2 * p);
+      /* исходящий кадр предыдущего клипа */
+      const prevFrameTime = Math.min(prev.start + prev.duration - 0.001, t);
+      if (tr.type === 'fadeblack') {
+        drawClipVisual(prev, prevFrameTime, 1 - eased);
+        /* чёрный между — оставляем как есть, экран уже чёрный */
+      } else if (tr.type === 'slide') {
+        drawClipVisual(prev, prevFrameTime, 1);
+        drawClipVisual(clip, t, 1, -(1 - eased) * 1.05);
+      } else if (tr.type === 'zoom') {
+        drawClipVisual(prev, prevFrameTime, 1 - eased);
+        const media = state.media.get(clip.mediaId);
+        if (media) {
+          const saved = JSON.parse(JSON.stringify(clip.transform || {}));
+          clip.transform = Object.assign({}, clip.transform, {
+            scale: (clip.transform.scale || 100) * (1.18 - 0.18 * eased),
+          });
+          drawClipVisual(clip, t, eased);
+          clip.transform = saved;
+        } else {
+          drawClipVisual(clip, t, eased);
+        }
+      } else {
+        /* crossfade */
+        drawClipVisual(prev, prevFrameTime, 1);
+        drawClipVisual(clip, t, eased);
+      }
+    } else {
+      const alpha = opacityAt(clip, t);
+      if (clip.track === 'text') drawTextClip(clip, t, alpha);
+      else drawClipVisual(clip, t, alpha);
+    }
+  }
+}
+
+function drawFrame(t) {
+  if (!drawCtx) return;
+  const W = state.project.width;
+  const H = state.project.height;
+  if (drawCanvas.width !== W || drawCanvas.height !== H) {
+    drawCanvas.width = W;
+    drawCanvas.height = H;
+  }
+  drawCtx.setTransform(1, 0, 0, 1, 0, 0);
+  drawCtx.globalAlpha = 1;
+  drawCtx.filter = 'none';
+  drawCtx.fillStyle = '#000000';
+  drawCtx.fillRect(0, 0, W, H);
+  drawTrack('main', t);
+  drawTrack('overlay', t);
+  drawTrack('text', t);
+  /* безопасные поля */
+  if (state.showSafe) {
+    drawCtx.save();
+    drawCtx.strokeStyle = 'rgba(255,255,255,.25)';
+    drawCtx.lineWidth = 2;
+    drawCtx.strokeRect(W * 0.05, H * 0.05, W * 0.9, H * 0.9);
+    drawCtx.restore();
+  }
+  state.needsDraw = false;
+}
+
+/* ---------- попадание по тексту на канвасе ---------- */
+
+function hitTestText(nx, ny) {
+  const t = state.playhead;
+  const list = clipsOf('text').filter((c) => clipIsActive(c, t));
+  for (let i = list.length - 1; i >= 0; i--) {
+    const c = list[i];
+    const tx = c.text;
+    if (!tx) continue;
+    const box = textBoxOf(c);
+    if (nx >= box.x0 && nx <= box.x1 && ny >= box.y0 && ny <= box.y1) return c;
+  }
+  return null;
+}
+
+/* Приблизительные габариты текстового блока в долях кадра */
+function textBoxOf(clip) {
+  const tx = clip.text || {};
+  const W = state.project.width;
+  const H = state.project.height;
+  const k = H / 1080;
+  const fontSize = Math.max(8, (tx.size || 72) * k);
+  const lines = String(tx.content || '').split('\n');
+  const approxW = Math.min(W * 0.9, Math.max(...lines.map((l) => l.length * fontSize * 0.55), fontSize));
+  const approxH = fontSize * (tx.lineH || 1.22) * lines.length;
+  const cx = (tx.x == null ? 0.5 : tx.x) * W;
+  const cy = (tx.y == null ? 0.5 : tx.y) * H;
+  return {
+    x0: cx - approxW / 2, x1: cx + approxW / 2,
+    y0: cy - approxH / 2, y1: cy + approxH / 2,
+    cx, cy,
+  };
+}
+
+/* ===== 06-playback.js ===== */
+/* ============================================================
+   06 · Движок воспроизведения и синхронизация медиаэлементов
+   ============================================================ */
+
+state.lastTick = 0;
+state.onEnded = null;
+
+function nextClipOf(track, clip) {
+  const list = clipsOfTrackSorted(track, clip.id);
+  for (const c of list) {
+    if (c.start >= clip.start + clip.duration - 1e-6) return c;
+  }
+  return null;
+}
+
+function hookMedia(media) {
+  if (!media.el || media._hooked || media.type === 'image') return;
+  media._hooked = true;
+  const bump = () => { state.needsDraw = true; };
+  media.el.addEventListener('seeked', bump);
+  media.el.addEventListener('loadeddata', bump);
+  media.el.addEventListener('timeupdate', bump);
+  media.el.addEventListener('ended', () => { state.needsDraw = true; });
+}
+
+function clipNeedsMedia(clip, t) {
+  if (clipIsActive(clip, t, 0.06)) return true;
+  if (clip.track === 'main' || clip.track === 'overlay') {
+    const next = nextClipOf(clip.track, clip);
+    if (next && next.transition && next.transition.dur > 0) {
+      const until = next.start + next.transition.dur;
+      if (t >= clip.start + clip.duration - 0.06 && t < until) return true;
+    }
+  }
+  return false;
+}
+
+function syncMedia(t) {
+  /* Один медиаэлемент может использоваться несколькими клипами
+     (например, после разрезания). Драйвер у каждого элемента должен быть
+     ровно один, иначе currentTime «пинг-понгует» и декодер застревает. */
+  for (const media of state.media.values()) {
+    if (!media.el || media.type === 'image') continue;
+    hookMedia(media);
+
+    const clips = state.project.clips.filter((c) => c.mediaId === media.id);
+    if (!clips.length) {
+      if (!media.el.paused) media.el.pause();
+      continue;
+    }
+
+    const needing = clips.filter((c) => clipNeedsMedia(c, t));
+    if (!needing.length) {
+      if (!media.el.paused) media.el.pause();
+      continue;
+    }
+
+    /* приоритет — клип, который сейчас реально в кадре */
+    const active = needing.find((c) => clipIsActive(c, t, 0.06));
+    const primary = active || needing[0];
+    const el = media.el;
+    const maxTime = Math.max(0, (media.duration || 0) - 0.03);
+    const desired = clamp(sourceTimeAt(primary, t), 0, maxTime || 1e6);
+    const speed = clamp(primary.speed || 1, 0.1, 8);
+
+    if (state.playing) {
+      if (Math.abs(el.playbackRate - speed) > 0.001) el.playbackRate = speed;
+      if (el.paused) {
+        try { el.currentTime = desired; } catch (e) {}
+        const p = el.play();
+        if (p && p.catch) p.catch(() => {});
+      } else if (!el.seeking && Math.abs(el.currentTime - desired) > 0.3) {
+        try { el.currentTime = desired; } catch (e) {}
+      }
+    } else {
+      if (!el.paused) el.pause();
+      const tol = 1.5 / (state.project.fps || 30);
+      if (!el.seeking && Math.abs(el.currentTime - desired) > tol) {
+        try { el.currentTime = desired; } catch (e) {}
+      }
+    }
+  }
+}
+
+function pauseAllMedia() {
+  for (const media of state.media.values()) {
+    if (media.el && media.type !== 'image') {
+      try { media.el.pause(); } catch (e) {}
+    }
+  }
+}
+
+function play() {
+  if (state.playing) return;
+  if (projectDuration() <= 0.01) {
+    toast('Сначала добавьте видео, фото или текст на таймлайн', 'warn');
+    return;
+  }
+  ensureAudio();
+  if (state.playhead >= projectDuration() - 0.02) state.playhead = 0;
+  state.playing = true;
+  state.lastTick = performance.now();
+  refreshTransport();
+}
+
+function pause() {
+  if (!state.playing) return;
+  state.playing = false;
+  state.lastTick = 0;
+  pauseAllMedia();
+  refreshTransport();
+}
+
+function stopPlayback() {
+  state.playing = false;
+  pauseAllMedia();
+  refreshTransport();
+}
+
+function togglePlay() {
+  if (state.playing) pause();
+  else play();
+}
+
+function seek(t, opts = {}) {
+  const dur = Math.max(projectDuration(), opts.minDuration || 0);
+  state.playhead = clamp(t, 0, Math.max(0, dur));
+  state.lastTick = performance.now();
+  state.needsDraw = true;
+  updatePlayheadUI();
+  refreshTransport(true);
+}
+
+function stepFrame(dir) {
+  pause();
+  const step = 1 / (state.project.fps || 30);
+  seek(state.playhead + dir * step);
+}
+
+function tickLoop(now) {
+  if (state.playing) {
+    const dt = Math.min(0.2, (now - (state.lastTick || now)) / 1000);
+    state.lastTick = now;
+    const dur = projectDuration();
+    state.playhead += dt;
+    if (state.playhead >= dur) {
+      state.playhead = dur;
+      pause();
+      const cb = state.onEnded;
+      state.onEnded = null;
+      if (cb) cb();
+    }
+  }
+  syncMedia(state.playhead);
+  updateAudioGains(state.playhead);
+  if (state.playing || state.needsDraw) drawFrame(state.playhead);
+  updatePlayheadUI();
+  updateStageHud();
+  requestAnimationFrame(tickLoop);
+}
+
+/* ---------- UI транспорта ---------- */
+
+function refreshTransport(onlyTime) {
+  const btn = $('#btnPlay');
+  if (btn) {
+    btn.innerHTML = '';
+    btn.appendChild(icon(state.playing ? 'pause' : 'play', 20));
+    btn.classList.toggle('playing', state.playing);
+    btn.setAttribute('aria-label', state.playing ? 'Пауза' : 'Воспроизвести');
+  }
+  if (!onlyTime) {
+    $$('#aspectSeg button').forEach((b) => b.classList.toggle('on', b.dataset.aspect === state.project.aspect));
+  }
+  updateTimeLabel();
+}
+
+function updateTimeLabel() {
+  const n = $('#timeLabel');
+  if (!n) return;
+  const dur = projectDuration();
+  n.textContent = `${fmtTime(state.playhead, state.project.fps)} / ${fmtTime(dur, state.project.fps)}`;
+}
+
+function updateStageHud() {
+  const hud = $('#stageHud');
+  if (!hud) return;
+  const clip = selectedClip();
+  let txt = '';
+  if (clip) {
+    const media = state.media.get(clip.mediaId);
+    txt = media ? media.name : clip.track === 'text' ? 'Текст: ' + (clip.text ? clip.text.content.slice(0, 22) : '') : '';
+  }
+  if (hud.textContent !== txt) hud.textContent = txt;
+}
+
+/* ===== 07-timeline.js ===== */
+/* ============================================================
+   07 · Таймлайн: дорожки, клипы, перетаскивание, обрезка, зум
+   ============================================================ */
+
+const tl = {
+  labels: null,
+  scroll: null,
+  inner: null,
+  ruler: null,
+  tracks: null,
+  playhead: null,
+  built: false,
+};
+
+function buildTimelineShell() {
+  tl.labels = $('#tlLabels');
+  tl.scroll = $('#tlScroll');
+  tl.inner = $('#tlInner');
+  tl.ruler = $('#tlRuler');
+  tl.tracks = $('#tlTracks');
+  tl.playhead = $('#tlPlayhead');
+  tl.built = true;
+
+  tl.labels.innerHTML = '';
+  for (const t of TRACKS) {
+    tl.labels.appendChild(
+      h('div', { class: 'tl-label', style: { height: t.height + 'px' } },
+        h('span', { class: 'tl-label-name' }, t.name),
+        h('span', { class: 'tl-label-dot ' + t.kind })
+      )
+    );
+  }
+
+  tl.tracks.innerHTML = '';
+  tl.ruler.innerHTML = '';
+  for (const t of TRACKS) {
+    tl.tracks.appendChild(
+      h('div', {
+        class: 'tl-track',
+        dataset: { track: t.id },
+        style: { height: t.height + 'px' },
+        onpointerdown: (e) => {
+          if (e.target === e.currentTarget) {
+            state.selection = null;
+            refreshInspector();
+            refreshTimeline();
+            scrubFromEvent(e, true);
+          }
+        },
+      })
+    );
+  }
+
+  /* клик/драг по линейке = скраб */
+  tl.ruler.addEventListener('pointerdown', (e) => scrubFromEvent(e, true));
+
+  /* колесо мыши + ctrl = зум */
+  tl.scroll.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      setZoom(state.pxPerSec * (e.deltaY > 0 ? 0.9 : 1.1));
+    }
+  }, { passive: false });
+}
+
+function scrubFromEvent(e, drag) {
+  const rect = tl.inner.getBoundingClientRect();
+  const apply = (clientX) => {
+    const x = clientX - rect.left;
+    seek(Math.max(0, x / state.pxPerSec));
+  };
+  apply(e.clientX);
+  if (!drag) return;
+  const move = (ev) => apply(ev.clientX);
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+}
+
+function setZoom(pps) {
+  state.pxPerSec = clamp(pps, 12, 400);
+  const inp = $('#tlZoom');
+  if (inp) inp.value = String(Math.round(state.pxPerSec));
+  refreshTimeline();
+  updatePlayheadUI();
+}
+
+function fitTimeline() {
+  const dur = Math.max(projectDuration(), 4);
+  const w = tl.scroll ? tl.scroll.clientWidth - 32 : 800;
+  setZoom(w / dur);
+  if (tl.scroll) tl.scroll.scrollLeft = 0;
+}
+
+function tickStep() {
+  const cands = [0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
+  for (const c of cands) {
+    if (c * state.pxPerSec >= 64) return c;
+  }
+  return 900;
+}
+
+function renderRuler(dur) {
+  if (!tl.ruler) return;
+  tl.ruler.innerHTML = '';
+  const step = tickStep();
+  const total = Math.max(dur + 12, 40);
+  const frag = document.createDocumentFragment();
+  for (let t = 0; t <= total; t += step) {
+    const left = t * state.pxPerSec;
+    if (left > total * state.pxPerSec) break;
+    frag.appendChild(
+      h('div', { class: 'tick', style: { left: left + 'px' } },
+        h('span', {}, fmtTime(t, state.project.fps).slice(0, 5))
+      )
+    );
+  }
+  tl.ruler.appendChild(frag);
+}
+
+function clipLabel(clip) {
+  if (clip.track === 'text') return (clip.text && clip.text.content) || 'Текст';
+  if (clip.mediaId) {
+    const m = state.media.get(clip.mediaId);
+    return m ? m.name : 'Файл';
+  }
+  return clip.name || 'Клип';
+}
+
+function clipClass(clip) {
+  const media = state.media.get(clip.mediaId);
+  const kinds = [];
+  kinds.push('t-' + clip.track);
+  if (media) kinds.push('k-' + media.type);
+  if (state.selection === clip.id) kinds.push('sel');
+  if (clip.transition && clip.transition.dur > 0 && clip.transition.type !== 'none') kinds.push('has-trans');
+  return kinds.join(' ');
+}
+
+function buildClipNode(clip) {
+  const pps = state.pxPerSec;
+  const w = Math.max(8, clip.duration * pps);
+  const node = h('div', {
+    class: 'clip ' + clipClass(clip),
+    dataset: { id: clip.id },
+    style: { left: clip.start * pps + 'px', width: w + 'px' },
+    title: `${clipLabel(clip)} · ${fmtDur(clip.duration)}`,
+  });
+
+  const media = state.media.get(clip.mediaId);
+  if (media && media.thumb && clip.track !== 'text' && clip.track !== 'audio') {
+    const strip = h('div', { class: 'clip-strip' });
+    strip.style.backgroundImage = `url(${media.thumb})`;
+    strip.style.backgroundSize = `auto ${Math.max(24, TRACKS.find((t) => t.id === clip.track).height - 18)}px`;
+    node.appendChild(strip);
+  }
+  if (clip.track === 'audio') {
+    node.appendChild(h('div', { class: 'clip-wave' }));
+  }
+  if (clip.track === 'text') {
+    node.appendChild(h('div', { class: 'clip-text-badge' }, 'T'));
+  }
+
+  node.appendChild(h('div', { class: 'clip-title' }, clipLabel(clip)));
+  if (clip.speed !== 1) node.appendChild(h('div', { class: 'clip-badge' }, clip.speed.toFixed(2).replace(/\.?0+$/, '') + '×'));
+  if (clip.muted) node.appendChild(h('div', { class: 'clip-badge mute' }, 'M'));
+
+  if (w > 30) {
+    node.appendChild(h('div', { class: 'handle l', dataset: { mode: 'trim-l' } }));
+    node.appendChild(h('div', { class: 'handle r', dataset: { mode: 'trim-r' } }));
+  }
+
+  node.addEventListener('pointerdown', (e) => startClipDrag(e, clip, node));
+  node.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    if (clip.track === 'text') {
+      setTab('text');
+      setTimeout(() => {
+        const ta = $('#textContentInput');
+        if (ta) { ta.focus(); ta.select(); }
+      }, 60);
+    }
+  });
+  return node;
+}
+
+function renderTimeline() {
+  if (!tl.built) return;
+  const dur = Math.max(projectDuration(), 12);
+  const pps = state.pxPerSec;
+  const innerW = Math.max(dur * pps + 260, (tl.scroll ? tl.scroll.clientWidth : 900));
+  tl.inner.style.width = innerW + 'px';
+
+  renderRuler(dur);
+
+  for (const t of TRACKS) {
+    const row = tl.tracks.querySelector(`.tl-track[data-track="${t.id}"]`);
+    if (!row) continue;
+    row.innerHTML = '';
+    const clips = clipsOf(t.id).sort((a, b) => a.start - b.start);
+    for (const c of clips) row.appendChild(buildClipNode(c));
+  }
+
+  const durNode = $('#tlDur');
+  if (durNode) durNode.textContent = `Длительность: ${fmtTime(projectDuration(), state.project.fps)}`;
+  updatePlayheadUI();
+  const countNode = $('#tlCount');
+  if (countNode) countNode.textContent = `${state.project.clips.length} клип(ов)`;
+}
+
+function updatePlayheadUI() {
+  if (!tl.playhead) return;
+  const x = state.playhead * state.pxPerSec;
+  tl.playhead.style.transform = `translateX(${x}px)`;
+  const handle = $('#tlPlayheadCap');
+  if (handle) handle.style.transform = `translateX(${x}px)`;
+  updateTimeLabel();
+  /* автоскролл при воспроизведении */
+  if (state.playing && tl.scroll) {
+    const left = tl.scroll.scrollLeft;
+    const w = tl.scroll.clientWidth;
+    if (x < left + 40 || x > left + w - 80) {
+      tl.scroll.scrollLeft = Math.max(0, x - w * 0.35);
+    }
+  }
+}
+
+/* ---------- перетаскивание и обрезка ---------- */
+
+const SNAP_PX = 8;
+
+function snapPoints(excludeId) {
+  const pts = [0, state.playhead];
+  for (const c of state.project.clips) {
+    if (c.id === excludeId) continue;
+    pts.push(c.start, c.start + c.duration);
+  }
+  return pts;
+}
+
+function applySnap(value, pts, pps) {
+  let best = value;
+  let bestDist = SNAP_PX / pps;
+  for (const p of pts) {
+    const d = Math.abs(p - value);
+    if (d < bestDist) { bestDist = d; best = p; }
+  }
+  return round(best, 3);
+}
+
+function trackAtPoint(clientX, clientY) {
+  const el = document.elementFromPoint(clientX, clientY);
+  if (!el) return null;
+  const row = el.closest ? el.closest('.tl-track') : null;
+  return row ? row.dataset.track : null;
+}
+
+function canGoToTrack(clip, trackId) {
+  if (trackId === clip.track) return true;
+  const media = state.media.get(clip.mediaId);
+  if (clip.track === 'text') return trackId === 'text';
+  if (media && media.type === 'audio') return trackId === 'audio';
+  return trackId === 'main' || trackId === 'overlay';
+}
+
+function maxDurationFor(clip) {
+  const media = state.media.get(clip.mediaId);
+  if (!media || media.type === 'image' || !media.duration) return 3600;
+  return Math.max(0.2, (media.duration - clip.inPoint) / (clip.speed || 1));
+}
+
+function startClipDrag(e, clip, node) {
+  if (e.button !== 0) return;
+  e.stopPropagation();
+  e.preventDefault();
+
+  const mode = e.target.dataset && e.target.dataset.mode ? e.target.dataset.mode : 'move';
+  state.selection = clip.id;
+  $$('.clip.sel').forEach((n) => n.classList.remove('sel'));
+  node.classList.add('sel');
+  refreshInspector();
+  refreshTimelineLight();
+
+  const pps = state.pxPerSec;
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const orig = { start: clip.start, duration: clip.duration, inPoint: clip.inPoint, track: clip.track };
+  let snapPts = snapPoints(clip.id);
+  let moved = false;
+  let historyPushed = false;
+
+  const guide = $('#snapGuide');
+
+  const onMove = (ev) => {
+    const dx = (ev.clientX - startX) / pps;
+    if (!moved && Math.abs(ev.clientX - startX) < 2 && Math.abs(ev.clientY - startY) < 2) return;
+    if (!moved) {
+      moved = true;
+      if (!historyPushed) { pushHistory(); historyPushed = true; }
+      document.body.classList.add('dragging-clip');
+      snapPts = snapPoints(clip.id);
+    }
+
+    if (mode === 'move') {
+      let ns = orig.start + dx;
+      const snapped = applySnap(ns, snapPts, pps);
+      if (snapped !== ns) { ns = snapped; showSnapGuide(ns); } else hideSnapGuide();
+      clip.start = round(Math.max(0, ns), 3);
+      /* смена дорожки */
+      const hoverTrack = trackAtPoint(ev.clientX, ev.clientY);
+      if (hoverTrack && hoverTrack !== clip.track && canGoToTrack(clip, hoverTrack)) {
+        clip.track = hoverTrack;
+        renderTimeline();
+        node = tl.tracks.querySelector(`.clip[data-id="${clip.id}"]`) || node;
+      }
+      node.style.left = clip.start * pps + 'px';
+    } else if (mode === 'trim-l') {
+      let delta = dx;
+      /* нельзя выйти за начало исходника */
+      const media = state.media.get(clip.mediaId);
+      if (media && media.duration) {
+        const minDelta = -orig.inPoint / (clip.speed || 1);
+        delta = Math.max(delta, minDelta);
+      }
+      delta = Math.min(delta, orig.duration - 0.15);
+      let newStart = orig.start + delta;
+      const snapped = applySnap(newStart, snapPts, pps);
+      if (snapped !== newStart) { delta += snapped - newStart; newStart = snapped; showSnapGuide(newStart); } else hideSnapGuide();
+      if (newStart < 0) { delta -= newStart; newStart = 0; }
+      clip.start = round(newStart, 3);
+      clip.duration = round(Math.max(0.15, orig.duration - delta), 3);
+      clip.inPoint = round(Math.max(0, orig.inPoint + delta * (clip.speed || 1)), 3);
+      node.style.left = clip.start * pps + 'px';
+      node.style.width = Math.max(8, clip.duration * pps) + 'px';
+    } else {
+      const media = state.media.get(clip.mediaId);
+      let maxDur = 3600;
+      if (media && media.duration) maxDur = Math.max(0.15, (media.duration - orig.inPoint) / (clip.speed || 1));
+      let newEnd = orig.start + orig.duration + dx;
+      const snapped = applySnap(newEnd, snapPts, pps);
+      if (snapped !== newEnd) { newEnd = snapped; showSnapGuide(newEnd); } else hideSnapGuide();
+      const newDur = clamp(newEnd - orig.start, 0.15, maxDur);
+      clip.duration = round(newDur, 3);
+      node.style.width = Math.max(8, clip.duration * pps) + 'px';
+    }
+
+    markDirty();
+    refreshTimelineLight();
+    updateTimeLabel();
+    redraw();
+  };
+
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+    document.body.classList.remove('dragging-clip');
+    hideSnapGuide();
+    if (moved) {
+      refreshTimeline();
+      refreshInspector();
+      refreshPanel();
+      redraw();
+    }
+  };
+
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
+
+function showSnapGuide(t) {
+  const g = $('#snapGuide');
+  if (!g) return;
+  g.style.display = 'block';
+  g.style.transform = `translateX(${t * state.pxPerSec}px)`;
+}
+
+function hideSnapGuide() {
+  const g = $('#snapGuide');
+  if (g) g.style.display = 'none';
+}
+
+/* Обновление только выделения/подписей без пересборки DOM */
+function refreshTimelineLight() {
+  if (!tl.built) return;
+  $$('.tl-track .clip').forEach((n) => {
+    n.classList.toggle('sel', n.dataset.id === state.selection);
+  });
+}
+
+/* ===== 08-panels.js ===== */
+/* ============================================================
+   08 · Левая панель: Медиа · Текст · Фильтры · Переходы · Аудио
+   ============================================================ */
+
+const TABS = [
+  { id: 'media', name: 'Медиа', icon: 'image' },
+  { id: 'text', name: 'Текст', icon: 'text' },
+  { id: 'filters', name: 'Фильтры', icon: 'filter' },
+  { id: 'transitions', name: 'Переходы', icon: 'transition' },
+  { id: 'audio', name: 'Аудио', icon: 'audio' },
+];
+
+function buildTabs() {
+  const nav = $('#tabs');
+  if (!nav) return;
+  nav.innerHTML = '';
+  for (const t of TABS) {
+    nav.appendChild(
+      h('button', {
+        class: 'tab' + (state.activeTab === t.id ? ' on' : ''),
+        dataset: { tab: t.id },
+        title: t.name,
+        onclick: () => setTab(t.id),
+      }, icon(t.icon, 18), h('span', {}, t.name))
+    );
+  }
+}
+
+function setTab(id) {
+  state.activeTab = id;
+  $$('#tabs .tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === id));
+  refreshPanel();
+}
+
+function refreshPanel() {
+  const body = $('#panelBody');
+  if (!body) return;
+  const scrollTop = body.scrollTop;
+  body.innerHTML = '';
+  const fn = {
+    media: renderMediaPanel,
+    text: renderTextPanel,
+    filters: renderFiltersPanel,
+    transitions: renderTransitionsPanel,
+    audio: renderAudioPanel,
+  }[state.activeTab] || renderMediaPanel;
+  fn(body);
+  body.scrollTop = scrollTop;
+}
+
+/* ---------- МЕДИА ---------- */
+
+function renderMediaPanel(root) {
+  root.appendChild(
+    h('div', { class: 'panel-head' },
+      h('h3', {}, 'Медиатека'),
+      h('button', { class: 'btn primary sm', onclick: () => $('#fileInput').click() },
+        icon('upload', 15), 'Импорт')
+    )
+  );
+
+  const list = Array.from(state.media.values());
+  const drop = h('div', { class: 'dropzone' },
+    icon('upload', 22),
+    h('div', {}, 'Нажмите или перетащите файлы сюда'),
+    h('small', {}, 'MP4 · WebM · MOV · MP3 · WAV · JPG · PNG')
+  );
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    drop.classList.remove('over');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) importFiles(e.dataTransfer.files);
+  });
+  drop.addEventListener('click', () => $('#fileInput').click());
+  root.appendChild(drop);
+
+  if (!list.length) {
+    root.appendChild(h('p', { class: 'hint' }, 'Пока пусто. Импортируйте видео — оно автоматически встанет на основную дорожку.'));
+    return;
+  }
+
+  const grid = h('div', { class: 'media-grid' });
+  for (const m of list) {
+    const card = h('div', { class: 'media-card', title: m.name + ' · ' + fmtDur(m.duration || 0) },
+      h('div', { class: 'media-thumb' },
+        m.thumb ? h('img', { src: m.thumb, alt: m.name, loading: 'lazy' }) : h('div', { class: 'media-noimg' }, icon(m.type === 'audio' ? 'audio' : 'video', 20)),
+        h('span', { class: 'media-dur' }, m.type === 'image' ? 'фото' : fmtDur(m.duration || 0)),
+        h('div', { class: 'media-actions' },
+          h('button', { class: 'mini', title: 'На основную дорожку', onclick: (e) => { e.stopPropagation(); addMediaToTimeline(m, m.type === 'audio' ? 'audio' : 'main'); } }, icon('plus', 14)),
+          m.type !== 'audio' ? h('button', { class: 'mini', title: 'Как наложение', onclick: (e) => { e.stopPropagation(); addMediaAsOverlay(m); } }, icon('layers', 14)) : null,
+          h('button', { class: 'mini danger', title: 'Удалить из проекта', onclick: (e) => { e.stopPropagation(); removeMedia(m.id); } }, icon('trash', 14))
+        )
+      ),
+      h('div', { class: 'media-name' }, m.name)
+    );
+    card.addEventListener('dblclick', () => {
+      if (m.type === 'audio') addMediaToTimeline(m, 'audio');
+      else addMediaToTimeline(m, 'main');
+    });
+    grid.appendChild(card);
+  }
+  root.appendChild(grid);
+  root.appendChild(h('p', { class: 'hint' }, 'Нажмите «+» на файле, чтобы добавить его на таймлайн. Файлы сохраняются в браузере (IndexedDB), проект переживёт перезагрузку.'));
+}
+
+/* ---------- ТЕКСТ ---------- */
+
+function renderTextPanel(root) {
+  root.appendChild(h('div', { class: 'panel-head' }, h('h3', {}, 'Текст и стикеры')));
+  root.appendChild(
+    h('button', { class: 'btn primary block', onclick: () => addTextClip(null) },
+      icon('plus', 16), 'Добавить текст')
+  );
+
+  root.appendChild(h('div', { class: 'section-title' }, 'Стили'));
+  const grid = h('div', { class: 'preset-grid' });
+  for (const p of TEXT_PRESETS) {
+    const sampleStyle = {
+      color: p.text.color,
+      fontWeight: p.text.weight,
+      fontSize: '17px',
+      textShadow: p.text.strokeW ? 'none' : '0 1px 6px rgba(0,0,0,.6)',
+      WebkitTextStroke: p.text.strokeW ? '1px ' + (p.text.stroke || '#fff') : 'none',
+      background: p.text.bgOpacity ? p.text.bgColor || '#000' : 'transparent',
+      padding: p.text.bgOpacity ? '2px 8px' : '0',
+      borderRadius: '4px',
+    };
+    grid.appendChild(
+      h('button', { class: 'preset translucent' + (p.text.bgOpacity ? ' dark' : ''), onclick: () => addTextClip(p) },
+        h('span', { style: sampleStyle }, p.sample),
+        h('small', {}, p.name)
+      )
+    );
+  }
+  root.appendChild(grid);
+
+  root.appendChild(h('div', { class: 'section-title' }, 'Стикеры'));
+  const stickers = h('div', { class: 'sticker-grid' });
+  for (const s of STICKERS) {
+    stickers.appendChild(
+      h('button', {
+        class: 'sticker',
+        onclick: () => addTextClip({ text: { content: s, size: 200, weight: 400, y: 0.5, strokeW: 0 } }),
+      }, s)
+    );
+  }
+  root.appendChild(stickers);
+  root.appendChild(h('p', { class: 'hint' }, 'Двойной клик по тексту на таймлайне — быстрое редактирование. Текст можно перетаскивать прямо по превью.'));
+}
+
+/* ---------- ФИЛЬТРЫ ---------- */
+
+function renderFiltersPanel(root) {
+  const sel = selectedClip();
+  root.appendChild(h('div', { class: 'panel-head' },
+    h('h3', {}, 'Фильтры'),
+    h('label', { class: 'switch' },
+      h('input', {
+        type: 'checkbox', checked: state.filterTargetAll,
+        onchange: (e) => { state.filterTargetAll = e.target.checked; },
+      }),
+      h('span', {}, 'на все клипы')
+    )
+  ));
+
+  const grid = h('div', { class: 'filter-grid' });
+  for (const f of FILTERS) {
+    const active = sel && !state.filterTargetAll && sel.filter === f.id;
+    const card = h('button', {
+      class: 'filter-card' + (active ? ' on' : ''),
+      title: f.name,
+      onclick: () => applyFilter(f.id),
+    },
+      h('div', {
+        class: 'filter-sample',
+        style: {
+          filter: f.css || 'none',
+          background: 'linear-gradient(140deg,#ff9a3c 0%,#ff4d6d 38%,#7b5cff 72%,#22d3ee 100%)',
+        },
+      }),
+      h('span', {}, f.name)
+    );
+    grid.appendChild(card);
+  }
+  root.appendChild(grid);
+
+  if (sel && sel.track !== 'text') {
+    root.appendChild(h('div', { class: 'section-title' }, 'Коррекция'));
+    root.appendChild(sliderRow('Яркость', sel.adj.b, 30, 200, 1, (v) => { sel.adj.b = v; markDirty(); redraw(); }, (v) => v + '%'));
+    root.appendChild(sliderRow('Контраст', sel.adj.c, 30, 200, 1, (v) => { sel.adj.c = v; markDirty(); redraw(); }, (v) => v + '%'));
+    root.appendChild(sliderRow('Насыщенность', sel.adj.s, 0, 250, 1, (v) => { sel.adj.s = v; markDirty(); redraw(); }, (v) => v + '%'));
+  } else {
+    root.appendChild(h('p', { class: 'hint' }, 'Выберите клип на таймлайне, чтобы применить фильтр.'));
+  }
+}
+
+function applyFilter(id) {
+  const targets = state.filterTargetAll
+    ? state.project.clips.filter((c) => c.track !== 'text')
+    : [selectedClip()].filter(Boolean);
+  if (!targets.length) return toast('Сначала выберите клип', 'warn');
+  commit(() => {
+    for (const c of targets) c.filter = id;
+  });
+  refreshPanel();
+}
+
+/* ---------- ПЕРЕХОДЫ ---------- */
+
+function renderTransitionsPanel(root) {
+  const sel = selectedClip();
+  root.appendChild(h('div', { class: 'panel-head' }, h('h3', {}, 'Переходы')));
+
+  const list = h('div', { class: 'trans-list' });
+  for (const t of TRANSITIONS) {
+    const active = sel && sel.transition && sel.transition.type === t.id && sel.transition.dur > 0;
+    list.appendChild(
+      h('button', {
+        class: 'trans-card' + (active ? ' on' : ''),
+        onclick: () => applyTransition(t.id),
+      },
+        h('div', { class: 'trans-preview t-' + t.id },
+          h('span', { class: 'ta' }), h('span', { class: 'tb' })
+        ),
+        h('span', {}, t.name)
+      )
+    );
+  }
+  root.appendChild(list);
+
+  if (sel && sel.transition && sel.transition.dur > 0) {
+    root.appendChild(h('div', { class: 'section-title' }, 'Длительность перехода'));
+    root.appendChild(
+      sliderRow('', sel.transition.dur, 0.2, 2, 0.05, (v) => {
+        sel.transition.dur = round(v, 2);
+        markDirty();
+        redraw();
+      }, (v) => v.toFixed(2) + ' с')
+    );
+  }
+  root.appendChild(h('p', { class: 'hint' }, 'Переход применяется к началу выбранного клипа — нужен предыдущий клип на той же дорожке.'));
+}
+
+function applyTransition(id) {
+  const clip = selectedClip();
+  if (!clip) return toast('Выберите клип на таймлайне', 'warn');
+  const t = TRANSITIONS.find((x) => x.id === id);
+  commit(() => {
+    clip.transition = { type: id, dur: id === 'none' ? 0 : t.dur };
+  });
+  refreshPanel();
+  refreshTimeline();
+}
+
+/* ---------- АУДИО ---------- */
+
+function renderAudioPanel(root) {
+  root.appendChild(h('div', { class: 'panel-head' }, h('h3', {}, 'Аудио')));
+
+  root.appendChild(
+    h('div', { class: 'row gap' },
+      h('button', { class: 'btn block', id: 'btnRecord', onclick: (e) => toggleRecording(e.currentTarget) }, icon('mic', 16), 'Записать голос'),
+      h('button', { class: 'btn', title: 'Импорт аудиофайла', onclick: () => $('#fileInput').click() }, icon('upload', 16))
+    )
+  );
+
+  root.appendChild(h('div', { class: 'section-title' }, 'Библиотека эффектов'));
+  const sfx = h('div', { class: 'sfx-grid' });
+  for (const s of SFX_PRESETS) {
+    sfx.appendChild(
+      h('button', { class: 'sfx-card', onclick: async (e) => {
+        e.currentTarget.disabled = true;
+        try {
+          await addSfx(s.id, s.name);
+          toast('Эффект «' + s.name + '» добавлен', 'ok');
+          refreshPanel();
+        } catch (err) {
+          toast('Не удалось создать эффект', 'err');
+        }
+        e.currentTarget.disabled = false;
+      } },
+        icon('audio', 18), h('span', {}, s.name), h('small', {}, s.desc)
+      )
+    );
+  }
+  root.appendChild(sfx);
+
+  root.appendChild(h('div', { class: 'section-title' }, 'Звук проекта'));
+  root.appendChild(
+    sliderRow('Общая громкость', state.masterVolume * 100, 0, 100, 1, (v) => {
+      state.masterVolume = v / 100;
+      const inp = $('#masterVol');
+      if (inp) inp.value = String(v);
+      updateAudioGains(state.playhead);
+    }, (v) => v + '%')
+  );
+
+  const audioMedia = Array.from(state.media.values()).filter((m) => m.type === 'audio');
+  root.appendChild(h('div', { class: 'section-title' }, 'Мои аудиофайлы'));
+  if (!audioMedia.length) {
+    root.appendChild(h('p', { class: 'hint' }, 'Аудио пока нет: запишите голос, сгенерируйте эффект или импортируйте MP3/WAV.'));
+  } else {
+    const list = h('div', { class: 'audio-list' });
+    for (const m of audioMedia) {
+      list.appendChild(
+        h('div', { class: 'audio-item' },
+          icon('audio', 16),
+          h('div', { class: 'audio-meta' }, h('span', {}, m.name), h('small', {}, fmtDur(m.duration || 0))),
+          h('button', { class: 'mini', title: 'Добавить на дорожку аудио', onclick: () => addMediaToTimeline(m, 'audio') }, icon('plus', 14)),
+          h('button', { class: 'mini danger', title: 'Удалить', onclick: () => removeMedia(m.id) }, icon('trash', 14))
+        )
+      );
+    }
+    root.appendChild(list);
+  }
+}
+
+/* ---------- общий helper: строка со слайдером ---------- */
+
+function sliderRow(label, value, min, max, step, onInput, format) {
+  const out = h('span', { class: 'srow-val' }, format ? format(value) : String(value));
+  const range = h('input', {
+    type: 'range', min, max, step, value,
+    oninput: (e) => {
+      const v = parseFloat(e.target.value);
+      out.textContent = format ? format(v) : String(v);
+      onInput(v);
+    },
+  });
+  return h('div', { class: 'srow' },
+    label ? h('span', { class: 'srow-label' }, label) : null,
+    range,
+    out
+  );
+}
+
+/* ---------- добавление текста ---------- */
+
+function addTextClip(preset) {
+  const tx = Object.assign(defaultText(), preset && preset.text ? preset.text : {});
+  const start = round(state.playhead, 3);
+  const clip = makeClip({ track: 'text', start, duration: 3, name: 'Текст', text: tx });
+  commit(() => {
+    state.project.clips.push(clip);
+    state.selection = clip.id;
+  });
+  setTab('text');
+  refreshInspector();
+  toast('Текст добавлен', 'ok');
+}
+
+/* ===== 09-inspector.js ===== */
+/* ============================================================
+   09 · Правая панель: инспектор клипа и проекта
+   ============================================================ */
+
+function refreshInspector() {
+  const root = $('#inspector');
+  if (!root) return;
+  root.innerHTML = '';
+  const clip = selectedClip();
+  if (!clip) return renderProjectInspector(root);
+  renderClipInspector(root, clip);
+}
+
+function field(label, node) {
+  return h('div', { class: 'field' }, h('label', {}, label), node);
+}
+
+function numInput(value, min, max, step, onInput, suffix) {
+  const inp = h('input', {
+    type: 'number', class: 'num', value: round(value, 2), min, max, step,
+    oninput: (e) => {
+      const v = parseFloat(e.target.value);
+      if (!isNaN(v)) onInput(clamp(v, min, max));
+    },
+  });
+  return h('div', { class: 'num-wrap' }, inp, suffix ? h('span', { class: 'suffix' }, suffix) : null);
+}
+
+function renderClipInspector(root, clip) {
+  const media = state.media.get(clip.mediaId);
+  const typeName = clip.track === 'text' ? 'Текст' : media ? { video: 'Видео', image: 'Фото', audio: 'Аудио' }[media.type] : 'Клип';
+
+  root.appendChild(
+    h('div', { class: 'insp-head' },
+      h('div', { class: 'insp-title' },
+        h('span', { class: 'badge-t' + (clip.track === 'text' ? ' text' : '') }, typeName),
+        h('strong', {}, clipLabel(clip).slice(0, 30))
+      ),
+      h('button', { class: 'mini danger', title: 'Удалить клип', onclick: deleteSelected }, icon('trash', 15))
+    )
+  );
+
+  /* --- тайминг --- */
+  const timing = h('div', { class: 'grid-2' },
+    field('Начало, с', numInput(clip.start, 0, 36000, 0.1, (v) => {
+      commit(() => { clip.start = round(v, 3); }, { keepSelection: true });
+    })),
+    field('Длительность, с', numInput(clip.duration, 0.1, 3600, 0.1, (v) => {
+      commit(() => { clip.duration = round(v, 3); }, { keepSelection: true });
+    }))
+  );
+  root.appendChild(timing);
+
+  /* --- текст --- */
+  if (clip.track === 'text' && clip.text) {
+    const tx = clip.text;
+    const ta = h('textarea', {
+      class: 'ta', rows: 3, id: 'textContentInput', value: tx.content,
+      oninput: (e) => { tx.content = e.target.value; markDirty(); redraw(); refreshTimelineLight(); },
+    });
+    root.appendChild(h('div', { class: 'section-title' }, 'Содержимое'));
+    root.appendChild(ta);
+
+    root.appendChild(h('div', { class: 'grid-2' },
+      field('Шрифт', h('select', {
+        class: 'sel-input',
+        onchange: (e) => { tx.font = e.target.value; markDirty(); redraw(); },
+      }, ...FONTS.map((f) => h('option', { value: f.id, selected: tx.font === f.id }, f.name)))),
+      field('Насыщенность', h('select', {
+        class: 'sel-input',
+        onchange: (e) => { tx.weight = parseInt(e.target.value, 10); markDirty(); redraw(); },
+      }, ...[400, 600, 700, 800, 900].map((w) => h('option', { value: w, selected: tx.weight === w }, String(w)))))
+    ));
+
+    root.appendChild(sliderRow('Размер', tx.size, 16, 260, 1, (v) => { tx.size = v; markDirty(); redraw(); }, (v) => Math.round(v) + ' px'));
+    root.appendChild(
+      h('div', { class: 'grid-2' },
+        field('Цвет', h('input', {
+          type: 'color', class: 'color', value: toHex(tx.color),
+          oninput: (e) => { tx.color = e.target.value; markDirty(); redraw(); },
+        })),
+        field('Обводка', h('input', {
+          type: 'color', class: 'color', value: toHex(tx.stroke || '#000000'),
+          oninput: (e) => { tx.stroke = e.target.value; markDirty(); redraw(); },
+        }))
+      )
+    );
+    root.appendChild(sliderRow('Толщина обводки', tx.strokeW, 0, 12, 1, (v) => { tx.strokeW = v; markDirty(); redraw(); }, (v) => Math.round(v)));
+    root.appendChild(
+      h('div', { class: 'grid-2' },
+        field('Фон', h('input', {
+          type: 'color', class: 'color', value: toHex(tx.bgColor || '#000000'),
+          oninput: (e) => { tx.bgColor = e.target.value; markDirty(); redraw(); },
+        })),
+        field('Прозрачность фона', h('input', {
+          type: 'range', min: 0, max: 100, step: 1, value: Math.round((tx.bgOpacity || 0) * 100),
+          oninput: (e) => { tx.bgOpacity = parseFloat(e.target.value) / 100; markDirty(); redraw(); },
+        }))
+      )
+    );
+    root.appendChild(sliderRow('Межбуквенное', (tx.letter || 0) * 1000, -50, 400, 5, (v) => { tx.letter = v / 1000; markDirty(); redraw(); }, (v) => v.toFixed(0)));
+    root.appendChild(sliderRow('Межстрочный', tx.lineH || 1.22, 0.8, 2.4, 0.02, (v) => { tx.lineH = v; markDirty(); redraw(); }, (v) => v.toFixed(2)));
+    root.appendChild(
+      h('label', { class: 'switch mt' },
+        h('input', { type: 'checkbox', checked: !!tx.shadow, onchange: (e) => { tx.shadow = e.target.checked; markDirty(); redraw(); } }),
+        h('span', {}, 'Свечение / тень')
+      )
+    );
+
+    /* позиция: сетка 3×3 */
+    root.appendChild(h('div', { class: 'section-title' }, 'Положение'));
+    const grid = h('div', { class: 'pos-grid' });
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const px = [0.12, 0.5, 0.88][c];
+        const py = [0.14, 0.5, 0.86][r];
+        grid.appendChild(
+          h('button', {
+            class: 'pos-cell' + (Math.abs(tx.x - px) < 0.06 && Math.abs(tx.y - py) < 0.06 ? ' on' : ''),
+            title: `x ${px} · y ${py}`,
+            onclick: () => {
+              tx.x = px; tx.y = py; markDirty(); redraw(); refreshInspector();
+            },
+          })
+        );
+      }
+    }
+    root.appendChild(grid);
+    root.appendChild(h('p', { class: 'hint' }, 'Текст можно перетаскивать мышкой прямо по превью.'));
+  }
+
+  /* --- видео-параметры --- */
+  if (clip.track !== 'text') {
+    root.appendChild(h('div', { class: 'section-title' }, 'Скорость'));
+    const speeds = [0.25, 0.5, 1, 1.5, 2, 3];
+    const row = h('div', { class: 'chips' });
+    for (const s of speeds) {
+      row.appendChild(h('button', {
+        class: 'chip' + (Math.abs((clip.speed || 1) - s) < 0.01 ? ' on' : ''),
+        onclick: () => setSpeed(clip, s),
+      }, s + '×'));
+    }
+    root.appendChild(row);
+    root.appendChild(sliderRow('Точная скорость', clip.speed || 1, 0.25, 4, 0.05, (v) => setSpeed(clip, v, true), (v) => v.toFixed(2) + '×'));
+
+    root.appendChild(h('div', { class: 'section-title' }, 'Звук клипа'));
+    root.appendChild(sliderRow('Громкость', Math.round(clip.volume * 100), 0, 200, 1, (v) => { clip.volume = v / 100; markDirty(); updateAudioGains(state.playhead); }, (v) => v + '%'));
+    root.appendChild(
+      h('label', { class: 'switch' },
+        h('input', { type: 'checkbox', checked: !!clip.muted, onchange: (e) => { clip.muted = e.target.checked; markDirty(); updateAudioGains(state.playhead); refreshTimeline(); } }),
+        h('span', {}, 'Заглушить')
+      )
+    );
+
+    root.appendChild(h('div', { class: 'section-title' }, 'Кадр'));
+    root.appendChild(sliderRow('Прозрачность', clip.opacity, 0, 100, 1, (v) => { clip.opacity = v; markDirty(); redraw(); }, (v) => v + '%'));
+    root.appendChild(sliderRow('Масштаб', clip.transform.scale, 10, 400, 1, (v) => { clip.transform.scale = v; markDirty(); redraw(); }, (v) => v + '%'));
+    root.appendChild(sliderRow('Сдвиг X', clip.transform.x * 100, -100, 100, 1, (v) => { clip.transform.x = v / 100; markDirty(); redraw(); }, (v) => Math.round(v)));
+    root.appendChild(sliderRow('Сдвиг Y', clip.transform.y * 100, -100, 100, 1, (v) => { clip.transform.y = v / 100; markDirty(); redraw(); }, (v) => Math.round(v)));
+    root.appendChild(sliderRow('Поворот', clip.transform.rot, -180, 180, 1, (v) => { clip.transform.rot = v; markDirty(); redraw(); }, (v) => v + '°'));
+    root.appendChild(
+      h('div', { class: 'row gap' },
+        h('button', { class: 'btn sm', onclick: () => { commit(() => { clip.transform = defaultTransform(); }, { keepSelection: true }); } }, 'Сбросить кадр')
+      )
+    );
+
+    root.appendChild(h('div', { class: 'section-title' }, 'Фильтр'));
+    root.appendChild(
+      h('select', {
+        class: 'sel-input',
+        onchange: (e) => { clip.filter = e.target.value; markDirty(); redraw(); refreshPanel(); },
+      }, ...FILTERS.map((f) => h('option', { value: f.id, selected: clip.filter === f.id }, f.name)))
+    );
+
+    root.appendChild(h('div', { class: 'section-title' }, 'Появление и исчезновение'));
+    root.appendChild(sliderRow('Появление', clip.fadeIn, 0, 5, 0.1, (v) => { clip.fadeIn = round(v, 2); markDirty(); redraw(); }, (v) => v.toFixed(1) + ' с'));
+    root.appendChild(sliderRow('Исчезновение', clip.fadeOut, 0, 5, 0.1, (v) => { clip.fadeOut = round(v, 2); markDirty(); redraw(); }, (v) => v.toFixed(1) + ' с'));
+  }
+
+  /* --- действия --- */
+  root.appendChild(h('div', { class: 'section-title' }, 'Действия'));
+  root.appendChild(
+    h('div', { class: 'action-grid' },
+      h('button', { class: 'btn sm', onclick: () => splitSelected() }, icon('scissors', 14), 'Разделить'),
+      h('button', { class: 'btn sm', onclick: () => duplicateSelected() }, icon('copy', 14), 'Дублировать'),
+      clip.track === 'main' ? h('button', { class: 'btn sm', onclick: () => moveClipToTrack(clip, 'overlay') }, icon('layers', 14), 'В наложение') : null,
+      clip.track === 'overlay' ? h('button', { class: 'btn sm', onclick: () => moveClipToTrack(clip, 'main') }, icon('video', 14), 'На основную') : null,
+      h('button', { class: 'btn sm danger', onclick: deleteSelected }, icon('trash', 14), 'Удалить')
+    )
+  );
+}
+
+function toHex(color) {
+  if (!color) return '#ffffff';
+  if (color[0] === '#') return color.length === 7 ? color : '#ffffff';
+  const m = color.match(/rgba?\(([^)]+)\)/);
+  if (!m) return '#ffffff';
+  const [r, g, b] = m[1].split(',').map((x) => parseInt(x, 10));
+  const hx = (n) => clamp(n || 0, 0, 255).toString(16).padStart(2, '0');
+  return '#' + hx(r) + hx(g) + hx(b);
+}
+
+function setSpeed(clip, speed, keepUi) {
+  const media = state.media.get(clip.mediaId);
+  const maxDur = media && media.duration ? Math.max(0.15, (media.duration - clip.inPoint) / speed) : 3600;
+  commit(() => {
+    clip.speed = round(speed, 3);
+    clip.duration = round(Math.min(clip.duration, maxDur), 3);
+  }, { keepSelection: true });
+  if (keepUi) {
+    /* обновляем только значения без пересборки инспектора */
+    refreshTimelineLight();
+  }
+}
+
+function moveClipToTrack(clip, track) {
+  commit(() => {
+    clip.track = track;
+    if (track === 'overlay') {
+      clip.start = round(state.playhead, 3);
+      clip.transform.scale = 42;
+      clip.transform.x = 0.22;
+      clip.transform.y = -0.2;
+    } else {
+      clip.transform = defaultTransform();
+    }
+  }, { keepSelection: true });
+}
+
+function renderProjectInspector(root) {
+  const dur = projectDuration();
+  const size = state.project.width + '×' + state.project.height;
+
+  root.appendChild(h('div', { class: 'insp-head' }, h('div', { class: 'insp-title' }, h('strong', {}, 'Проект'))));
+
+  const stats = h('div', { class: 'stats' },
+    statRow('Разрешение', size),
+    statRow('Формат', state.project.aspect),
+    statRow('Длительность', fmtTime(dur, state.project.fps)),
+    statRow('Клипов', String(state.project.clips.length)),
+    statRow('Файлов', String(state.media.size)),
+    statRow('FPS', String(state.project.fps))
+  );
+  root.appendChild(stats);
+
+  root.appendChild(h('div', { class: 'section-title' }, 'Проект'));
+  root.appendChild(
+    h('div', { class: 'action-grid' },
+      h('button', { class: 'btn sm', onclick: exportProjectJson }, icon('download', 14), 'Скачать .json'),
+      h('button', { class: 'btn sm', onclick: () => $('#projectInput').click() }, icon('upload', 14), 'Загрузить'),
+      h('button', { class: 'btn sm danger', onclick: () => {
+        if (confirm('Начать новый проект? Текущий будет очищен.')) resetProject();
+      } }, icon('trash', 14), 'Новый проект')
+    )
+  );
+
+  root.appendChild(h('div', { class: 'section-title' }, 'Подсказки'));
+  root.appendChild(h('ul', { class: 'tips' },
+    h('li', {}, 'Перетащите файлы в окно — они добавятся на таймлайн'),
+    h('li', {}, 'S — разделить клип, Del — удалить, Space — плей'),
+    h('li', {}, 'Ctrl+Z / Ctrl+Shift+Z — отмена и повтор'),
+    h('li', {}, 'Тяните края клипа, чтобы обрезать'),
+    h('li', {}, 'Двойной клик по тексту — редактирование')
+  ));
+
+  root.appendChild(h('div', { class: 'section-title' }, 'Горячие клавиши'));
+  const keys = [
+    ['Space', 'плей / пауза'],
+    ['S', 'разделить клип'],
+    ['Del', 'удалить клип'],
+    ['Ctrl+D', 'дублировать'],
+    ['Ctrl+Z', 'отменить'],
+    ['Ctrl+S', 'сохранить'],
+    ['← / →', 'кадр назад / вперёд'],
+    ['Home / End', 'в начало / конец'],
+  ];
+  const table = h('div', { class: 'keys' });
+  for (const [k, v] of keys) table.appendChild(h('div', { class: 'key-row' }, h('kbd', {}, k), h('span', {}, v)));
+  root.appendChild(table);
+
+  root.appendChild(h('p', { class: 'hint' }, 'Проект автоматически сохраняется в этом браузере. Для переноса используйте «Скачать .json» — но исходники видео нужно перенести отдельно.'));
+}
+
+function statRow(k, v) {
+  return h('div', { class: 'stat-row' }, h('span', {}, k), h('strong', {}, v));
+}
+
+/* ===== 10-actions.js ===== */
+/* ============================================================
+   10 · Действия с клипами: разделение, удаление, дублирование, буфер
+   ============================================================ */
+
+let clipboard = null;
+
+function splitClipAt(clip, t) {
+  const local = t - clip.start;
+  if (local <= 0.06 || local >= clip.duration - 0.06) return false;
+  const right = deepClone(clip);
+  right.id = uid('clip');
+  right.start = round(clip.start + local, 3);
+  right.duration = round(clip.duration - local, 3);
+  right.inPoint = round((clip.inPoint || 0) + local * (clip.speed || 1), 3);
+  right.transition = { type: 'none', dur: 0 };
+  clip.duration = round(local, 3);
+  state.project.clips.push(right);
+  return true;
+}
+
+function splitSelected() {
+  const clip = selectedClip();
+  const t = state.playhead;
+  if (clip && t > clip.start + 0.06 && t < clip.start + clip.duration - 0.06) {
+    commit(() => { splitClipAt(clip, t); }, { keepSelection: true });
+    toast('Клип разделён', 'ok');
+    return;
+  }
+  /* иначе — режем всё, что под курсором */
+  const targets = state.project.clips.filter((c) => t > c.start + 0.06 && t < c.start + c.duration - 0.06);
+  if (!targets.length) return toast('Поставьте курсор внутрь клипа', 'warn');
+  commit(() => { targets.forEach((c) => splitClipAt(c, t)); });
+  toast(`Разделено клипов: ${targets.length}`, 'ok');
+}
+
+function deleteSelected() {
+  const clip = selectedClip();
+  if (!clip) return;
+  commit(() => {
+    state.project.clips = state.project.clips.filter((c) => c.id !== clip.id);
+  }, { keepSelection: false });
+  state.selection = null;
+  refreshAll();
+  toast('Клип удалён');
+}
+
+function duplicateSelected() {
+  const clip = selectedClip();
+  if (!clip) return toast('Выберите клип', 'warn');
+  const copy = deepClone(clip);
+  copy.id = uid('clip');
+  copy.start = round(clip.start + clip.duration, 3);
+  copy.transition = { type: 'none', dur: 0 };
+  commit(() => {
+    state.project.clips.push(copy);
+    state.selection = copy.id;
+  }, { keepSelection: true });
+  refreshAll();
+  toast('Клип дублирован', 'ok');
+}
+
+function copySelected() {
+  const clip = selectedClip();
+  if (!clip) return;
+  clipboard = deepClone(clip);
+  toast('Клип скопирован');
+}
+
+function pasteClipboard() {
+  if (!clipboard) return toast('Буфер пуст', 'warn');
+  const copy = deepClone(clipboard);
+  copy.id = uid('clip');
+  copy.start = round(state.playhead, 3);
+  copy.transition = { type: 'none', dur: 0 };
+  commit(() => {
+    state.project.clips.push(copy);
+    state.selection = copy.id;
+  }, { keepSelection: true });
+  refreshAll();
+  toast('Клип вставлен', 'ok');
+}
+
+/* ---------- проект в JSON ---------- */
+
+function exportProjectJson() {
+  const payload = {
+    app: 'CharonCut',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    project: state.project,
+    media: Array.from(state.media.values()).map((m) => ({
+      id: m.id, name: m.name, type: m.type, duration: m.duration,
+      width: m.width, height: m.height, size: m.size || 0,
+      note: 'Исходные файлы в JSON не вкладываются — перенесите их отдельно',
+    })),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `${(state.project.name || 'charoncut').replace(/\s+/g, '-')}.json`);
+  toast('Файл проекта скачан', 'ok');
+}
+
+async function importProjectJson(file) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const proj = data.project || data;
+    if (!proj || !Array.isArray(proj.clips)) throw new Error('Неверный формат проекта');
+    pushHistory();
+    state.project = proj;
+    state.selection = null;
+    state.playhead = 0;
+    stopPlayback();
+    refreshAll();
+    saveNow();
+    const missing = state.project.clips.filter((c) => c.mediaId && !state.media.has(c.mediaId)).length;
+    if (missing) toast(`Проект загружен, но для ${missing} клип(ов) нет исходников в этом браузере. Повторное связывание пока не поддерживается`, 'warn', 6000);
+    else toast('Проект загружен', 'ok');
+  } catch (e) {
+    toast('Не удалось открыть проект: ' + e.message, 'err');
+  }
+}
+
+function selectClip(id) {
+  state.selection = id;
+  refreshTimelineLight();
+  refreshInspector();
+  state.needsDraw = true;
+}
+
+/* ===== 11-export.js ===== */
+/* ============================================================
+   11 · Экспорт видео (canvas.captureStream + MediaRecorder)
+   ============================================================ */
+
+let exportState = null;
+
+function pickMime() {
+  const cands = [
+    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+  ];
+  if (!window.MediaRecorder) return '';
+  for (const c of cands) {
+    try { if (MediaRecorder.isTypeSupported(c)) return c; } catch (e) {}
+  }
+  return '';
+}
+
+function extForMime(mime) {
+  if (!mime) return 'webm';
+  if (mime.includes('mp4')) return 'mp4';
+  return 'webm';
+}
+
+function openModal(node, opts = {}) {
+  const root = $('#modalRoot');
+  root.innerHTML = '';
+  const overlay = h('div', { class: 'overlay' }, node);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay && !opts.sticky) closeModal();
+  });
+  root.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('in'));
+  return overlay;
+}
+
+function closeModal() {
+  const root = $('#modalRoot');
+  if (!root) return;
+  const ov = root.firstElementChild;
+  if (!ov) return;
+  ov.classList.remove('in');
+  setTimeout(() => { root.innerHTML = ''; }, 150);
+}
+
+function openExportDialog() {
+  if (state.exporting) return toast('Экспорт уже идёт', 'warn');
+  if (projectDuration() <= 0.01) return toast('Проект пуст — нечего экспортировать', 'warn');
+  ensureAudio();
+
+  const duration = projectDuration();
+  const mime = pickMime();
+  if (!window.MediaRecorder || !mime) {
+    toast('Этот браузер не умеет записывать видео (MediaRecorder недоступен)', 'err', 6000);
+  }
+
+  const quality = { id: 'q-mid', value: 8_000_000 };
+  const qualityBtns = [
+    { label: 'Черновик', value: 3_000_000 },
+    { label: 'Нормально', value: 8_000_000 },
+    { label: 'Хорошо', value: 14_000_000 },
+    { label: 'Максимум', value: 24_000_000 },
+  ];
+  const scaleBtns = [
+    { label: '100%', value: 1 },
+    { label: '75%', value: 0.75 },
+    { label: '50%', value: 0.5 },
+  ];
+  const fpsBtns = [24, 30, 60];
+  const opts = { bitrate: 8_000_000, scale: 1, fps: state.project.fps || 30, audio: true };
+
+  const chips = (arr, current, onPick, labelFn) => {
+    const wrap = h('div', { class: 'chips' });
+    arr.forEach((item) => {
+      const val = typeof item === 'object' ? item.value : item;
+      const btn = h('button', {
+        class: 'chip' + (val === current ? ' on' : ''),
+        onclick: () => {
+          onPick(val);
+          wrap.querySelectorAll('.chip').forEach((b) => b.classList.remove('on'));
+          btn.classList.add('on');
+        },
+      }, labelFn ? labelFn(item) : String(item));
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  };
+
+  const audioChk = h('input', {
+    type: 'checkbox', checked: true,
+    onchange: (e) => { opts.audio = e.target.checked; },
+  });
+
+  const dialog = h('div', { class: 'modal export-modal' },
+    h('div', { class: 'modal-head' },
+      h('h2', {}, 'Экспорт видео'),
+      h('button', { class: 'mini', onclick: closeModal }, icon('close', 16))
+    ),
+    h('div', { class: 'modal-body' },
+      h('div', { class: 'export-summary' },
+        h('div', {}, h('span', { class: 'dim' }, 'Формат'), h('strong', {}, state.project.aspect + ' · ' + state.project.width + '×' + state.project.height)),
+        h('div', {}, h('span', { class: 'dim' }, 'Длительность'), h('strong', {}, fmtTime(duration, state.project.fps))),
+        h('div', {}, h('span', { class: 'dim' }, 'Файл'), h('strong', {}, (mime || 'webm').includes('mp4') ? 'MP4' : 'WebM'))
+      ),
+      field('Разрешение', chips(scaleBtns, opts.scale, (v) => { opts.scale = v; }, (i) => `${i.label} · ${Math.round(state.project.width * i.value)}p`)),
+      field('Частота кадров', chips(fpsBtns, opts.fps, (v) => { opts.fps = v; }, (i) => i + ' fps')),
+      field('Качество', chips(qualityBtns, opts.bitrate, (v) => { opts.bitrate = v; }, (i) => i.label)),
+      h('label', { class: 'switch' }, audioChk, h('span', {}, 'Со звуком (микс дорожек)')),
+      h('p', { class: 'hint' }, 'Экспорт идёт в реальном времени: ролик на ' + fmtDur(duration) + ' будет сохраняться примерно столько же. Не переключайте вкладку — браузер может замедлить отрисовку.'),
+      mime ? null : h('p', { class: 'hint err' }, 'MediaRecorder недоступен: используйте Chrome, Edge, Firefox или Safari 15+.')
+    ),
+    h('div', { class: 'modal-foot' },
+      h('button', { class: 'btn ghost', onclick: () => { closeModal(); saveFrame(); } }, icon('image', 15), 'Сохранить кадр (PNG)'),
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'btn', onclick: closeModal }, 'Отмена'),
+      h('button', {
+        class: 'btn primary', disabled: !mime,
+        onclick: () => startExport(opts),
+      }, icon('download', 16), 'Экспортировать')
+    )
+  );
+  openModal(dialog);
+}
+
+function startExport(opts) {
+  if (state.exporting) return;
+  const duration = projectDuration();
+  if (duration <= 0.01) return;
+
+  ensureAudio();
+  stopPlayback();
+  state.exporting = true;
+
+  const outW = Math.max(2, Math.round((state.project.width * opts.scale) / 2) * 2);
+  const outH = Math.max(2, Math.round((state.project.height * opts.scale) / 2) * 2);
+
+  const expCanvas = document.createElement('canvas');
+  expCanvas.width = outW;
+  expCanvas.height = outH;
+  const expCtx = expCanvas.getContext('2d');
+
+  /* прогреваем рендер на первом кадре */
+  seek(0);
+  drawFrame(0);
+  expCtx.drawImage(drawCanvas, 0, 0, outW, outH);
+
+  let stream;
+  try {
+    stream = expCanvas.captureStream(opts.fps);
+  } catch (e) {
+    state.exporting = false;
+    toast('Не удалось захватить canvas: ' + e.message, 'err');
+    return;
+  }
+  if (opts.audio && streamDest) {
+    const tracks = streamDest.stream.getAudioTracks();
+    /* Экспорт владеет только клоном: иначе cleanup() остановит общую
+       аудиодорожку и последующие экспорты останутся без звука. */
+    if (tracks.length) stream.addTrack(tracks[0].clone());
+  }
+
+  const mime = pickMime();
+  let rec;
+  try {
+    rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: opts.bitrate, audioBitsPerSecond: 128000 } : undefined);
+  } catch (e) {
+    try { rec = new MediaRecorder(stream); } catch (e2) {
+      state.exporting = false;
+      toast('MediaRecorder не запустился: ' + e2.message, 'err');
+      return;
+    }
+  }
+
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const recDone = new Promise((resolve) => { rec.onstop = () => resolve(); });
+  rec.start(500);
+
+  let cancelled = false;
+  let copyAlive = true;
+  const copyLoop = () => {
+    if (!copyAlive) return;
+    try { expCtx.drawImage(drawCanvas, 0, 0, outW, outH); } catch (e) {}
+    requestAnimationFrame(copyLoop);
+  };
+  requestAnimationFrame(copyLoop);
+
+  /* панель прогресса */
+  const bar = h('div', { class: 'bar-fill' });
+  const pct = h('strong', {}, '0%');
+  const eta = h('span', { class: 'dim' }, '');
+  const progress = h('div', { class: 'modal export-modal' },
+    h('div', { class: 'modal-head' }, h('h2', {}, 'Идёт экспорт…')),
+    h('div', { class: 'modal-body' },
+      h('div', { class: 'export-summary' }, h('div', {}, h('span', { class: 'dim' }, 'Рендер'), pct), h('div', {}, h('span', { class: 'dim' }, 'Осталось'), eta)),
+      h('div', { class: 'bar' }, bar),
+      h('p', { class: 'hint' }, 'Идёт запись в реальном времени: ' + outW + '×' + outH + ', ' + opts.fps + ' fps. Не закрывайте вкладку.')
+    ),
+    h('div', { class: 'modal-foot' },
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'btn ghost', onclick: () => { cancelled = true; abortExport(); } }, 'Отменить')
+    )
+  );
+  const overlay = openModal(progress, { sticky: true });
+  const ovRef = overlay;
+
+  exportState = {
+    rec, stream, cancelled,
+    abort() { cancelled = true; copyAlive = false; },
+  };
+
+  const progressTimer = setInterval(() => {
+    const p = clamp(state.playhead / (duration || 1), 0, 1);
+    bar.style.width = (p * 100).toFixed(1) + '%';
+    pct.textContent = Math.round(p * 100) + '%';
+    eta.textContent = fmtDur(Math.max(0, duration - state.playhead));
+  }, 120);
+
+  state.onEnded = async () => {
+    copyAlive = false;
+    clearInterval(progressTimer);
+    if (cancelled) { cleanup(); return; }
+    await sleep(320);
+    try { if (rec.state !== 'inactive') rec.stop(); } catch (e) {}
+    await recDone;
+    cleanup();
+    const blob = new Blob(chunks, { type: (mime || 'video/webm').split(';')[0] });
+    state.exporting = false;
+    /* openModal внутри showExportResult сам заменит содержимое оверлея */
+    showExportResult(blob, mime);
+  };
+
+  function cleanup() {
+    state.exporting = false;
+    exportState = null;
+    state.onEnded = null;
+    copyAlive = false;
+    clearInterval(progressTimer);
+    try { stream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+  }
+
+  function abortExport() {
+    stopPlayback();
+    copyAlive = false;
+    clearInterval(progressTimer);
+    try { if (rec.state !== 'inactive') rec.stop(); } catch (e) {}
+    cleanup();
+    closeModal();
+    toast('Экспорт отменён', 'warn');
+  }
+
+  play();
+}
+
+function showExportResult(blob, mime) {
+  const url = URL.createObjectURL(blob);
+  const ext = extForMime(mime);
+  const name = (state.project.name || 'charoncut').replace(/\s+/g, '-') + '-' + Date.now().toString().slice(-5) + '.' + ext;
+
+  const dialog = h('div', { class: 'modal export-modal' },
+    h('div', { class: 'modal-head' },
+      h('h2', {}, 'Готово'),
+      h('button', { class: 'mini', onclick: () => { URL.revokeObjectURL(url); closeModal(); } }, icon('close', 16))
+    ),
+    h('div', { class: 'modal-body' },
+      h('video', { src: url, controls: true, playsinline: true, style: { width: '100%', borderRadius: '10px', background: '#000' } }),
+      h('p', { class: 'hint' }, `Файл: ${name} · ${fmtBytes(blob.size)} · ${ext.toUpperCase()}`),
+      h('p', { class: 'hint' }, 'Если скачивание не началось (например, в песочнице предпросмотра), откройте файл в новой вкладке.')
+    ),
+    h('div', { class: 'modal-foot' },
+      h('button', { class: 'btn ghost', onclick: () => window.open(url, '_blank') }, 'Открыть в новой вкладке'),
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'btn', onclick: () => { URL.revokeObjectURL(url); closeModal(); openExportDialog(); } }, 'Ещё раз'),
+      h('button', { class: 'btn primary', onclick: () => downloadBlob(blob, name) }, icon('download', 16), 'Скачать')
+    )
+  );
+  openModal(dialog, { sticky: true });
+}
+
+function saveFrame() {
+  try {
+    drawFrame(state.playhead);
+    drawCanvas.toBlob((blob) => {
+      if (!blob) return toast('Не удалось сохранить кадр', 'err');
+      downloadBlob(blob, `frame-${Date.now()}.png`);
+      toast('Кадр сохранён', 'ok');
+    }, 'image/png');
+  } catch (e) {
+    toast('Ошибка: ' + e.message, 'err');
+  }
+}
+
+/* ===== 12-app.js ===== */
+/* ============================================================
+   12 · Запуск приложения, клавиатура, превью, интеграция
+   ============================================================ */
+
+function redraw() {
+  state.needsDraw = true;
+  if (drawCtx) {
+    try { drawFrame(state.playhead); } catch (e) { console.warn(e); }
+  }
+}
+
+function refreshTimeline() {
+  if (!tl.built) return;
+  renderTimeline();
+}
+
+function refreshAll() {
+  buildTabs();
+  refreshPanel();
+  refreshTimeline();
+  refreshInspector();
+  refreshTransport();
+  refreshTop();
+  updateStageEmpty();
+  updateAudioGains(state.playhead);
+  redraw();
+}
+
+function refreshTop() {
+  const inp = $('#projectName');
+  if (inp && document.activeElement !== inp) inp.value = state.project.name || '';
+  const u = $('#btnUndo');
+  const r = $('#btnRedo');
+  if (u) u.disabled = !state.undoStack.length;
+  if (r) r.disabled = !state.redoStack.length;
+  $$('#aspectSeg button').forEach((b) => b.classList.toggle('on', b.dataset.aspect === state.project.aspect));
+}
+
+function updateStageEmpty() {
+  const empty = $('#stageEmpty');
+  if (!empty) return;
+  const isEmpty = state.project.clips.length === 0;
+  empty.classList.toggle('hide', !isEmpty);
+}
+
+/* ---------- верхняя панель ---------- */
+
+function on(selector, event, handler) {
+  const node = $(selector);
+  if (!node) {
+    console.warn('CharonCut: элемент не найден —', selector);
+    return null;
+  }
+  node.addEventListener(event, handler);
+  return node;
+}
+
+function setupTopbar() {
+  const undoBtn = on('#btnUndo', 'click', undo);
+  if (undoBtn) undoBtn.appendChild(icon('undo', 17));
+  const redoBtn = on('#btnRedo', 'click', redo);
+  if (redoBtn) redoBtn.appendChild(icon('redo', 17));
+  const saveBtn = on('#btnSave', 'click', saveNow);
+  if (saveBtn) saveBtn.appendChild(icon('save', 17));
+
+  on('#btnExport', 'click', openExportDialog);
+  on('#btnPlay', 'click', togglePlay);
+  on('#btnHelp', 'click', openHelp);
+  on('#btnProject', 'click', openProjectMenu);
+  on('#btnBack10', 'click', () => seek(state.playhead - 5));
+  on('#btnFwd10', 'click', () => seek(state.playhead + 5));
+
+  on('#projectName', 'input', (e) => {
+    state.project.name = e.target.value;
+    markDirty();
+  });
+
+  on('#masterVol', 'input', (e) => {
+    state.masterVolume = parseInt(e.target.value, 10) / 100;
+    ensureAudio();
+    updateAudioGains(state.playhead);
+  });
+
+  $$('#aspectSeg button').forEach((b) => {
+    b.addEventListener('click', () => {
+      commit(() => applyAspect(b.dataset.aspect), { keepSelection: true });
+      refreshPanel();
+      updateStageEmpty();
+    });
+  });
+
+  on('#fileInput', 'change', (e) => {
+    if (e.target.files && e.target.files.length) importFiles(e.target.files);
+    e.target.value = '';
+  });
+
+  on('#projectInput', 'change', (e) => {
+    if (e.target.files && e.target.files[0]) importProjectJson(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  on('#tlSplit', 'click', splitSelected);
+  on('#tlDelete', 'click', deleteSelected);
+  on('#tlDup', 'click', duplicateSelected);
+  on('#tlFit', 'click', fitTimeline);
+  on('#tlZoom', 'input', (e) => setZoom(parseInt(e.target.value, 10)));
+  on('#btnAddText', 'click', () => addTextClip(null));
+  on('#btnUploadTop', 'click', () => $('#fileInput').click());
+  const mobilePanel = (inspector) => {
+    document.body.classList.toggle('mobile-inspect', inspector);
+    const a = $('#mobileLibrary'), b = $('#mobileInspector');
+    if (a && b) {
+      a.classList.toggle('active', !inspector); b.classList.toggle('active', inspector);
+      a.setAttribute('aria-pressed', String(!inspector)); b.setAttribute('aria-pressed', String(inspector));
+    }
+  };
+  on('#mobileLibrary', 'click', () => mobilePanel(false));
+  on('#mobileInspector', 'click', () => mobilePanel(true));
+  on('#mobileProject', 'click', openProjectMenu);
+  on('#stageEmpty', 'click', () => $('#fileInput').click());
+}
+
+function openHelp() {
+  const dialog = h('div', { class: 'modal' },
+    h('div', { class: 'modal-head' },
+      h('h2', {}, 'CharonCut — как это работает'),
+      h('button', { class: 'mini', onclick: closeModal }, icon('close', 16))
+    ),
+    h('div', { class: 'modal-body' },
+      h('p', {}, 'Браузерный видеоредактор в духе CapCut: таймлайн, обрезка, текст, фильтры, переходы, звук и экспорт. Всё считается локально — файлы не уходят на сервер.'),
+      h('div', { class: 'section-title' }, 'С чего начать'),
+      h('ol', { class: 'tips' },
+        h('li', {}, 'Перетащите видео/фото в окно (или «Импорт» в медиатеке).'),
+        h('li', {}, 'Тяните края клипа — обрезка; тяните сам клип — сдвиг.'),
+        h('li', {}, 'Вкладка «Текст» → стиль или стикер, потом тащите текст по превью.'),
+        h('li', {}, '«Фильтры» и «Переходы» применяются к выделенному клипу.'),
+        h('li', {}, '«Экспорт» → выберите качество и дождитесь окончания (реальное время).')
+      ),
+      h('div', { class: 'section-title' }, 'Горячие клавиши'),
+      h('div', { class: 'keys' },
+        ...[['Space', 'плей / пауза'], ['S', 'разделить клип'], ['Del / Backspace', 'удалить клип'],
+          ['Ctrl+D', 'дублировать'], ['Ctrl+C / Ctrl+V', 'копировать / вставить'], ['Ctrl+Z', 'отменить'],
+          ['Ctrl+Shift+Z', 'повторить'], ['Ctrl+S', 'сохранить'], ['Ctrl+E', 'экспорт'],
+          ['← / →', 'шаг на кадр'], ['Shift+← / →', 'шаг на 1 с'], ['Home / End', 'начало / конец']]
+          .map(([k, v]) => h('div', { class: 'key-row' }, h('kbd', {}, k), h('span', {}, v)))
+      ),
+      h('div', { class: 'section-title' }, 'Честно о границах'),
+      h('p', { class: 'hint' }, 'Это не бинарник CapCut и не его брендинг: нет AI-функций, облачных шаблонов, авто-субтитров и мобильного приложения. Взамен — работает в браузере, бесплатно и разворачивается на GitHub Pages без сервера.')
+    ),
+    h('div', { class: 'modal-foot' },
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'btn primary', onclick: closeModal }, 'Понятно')
+    )
+  );
+  openModal(dialog);
+}
+
+function openProjectMenu() {
+  const dialog = h('div', { class: 'modal' },
+    h('div', { class: 'modal-head' },
+      h('h2', {}, 'Проект'),
+      h('button', { class: 'mini', onclick: closeModal }, icon('close', 16))
+    ),
+    h('div', { class: 'modal-body' },
+      h('div', { class: 'action-grid' },
+        h('button', { class: 'btn', onclick: () => { closeModal(); saveNow(); } }, icon('save', 15), 'Сохранить'),
+        h('button', { class: 'btn', onclick: () => { closeModal(); exportProjectJson(); } }, icon('download', 15), 'Скачать .json'),
+        h('button', { class: 'btn', onclick: () => { closeModal(); $('#projectInput').click(); } }, icon('upload', 15), 'Загрузить .json')
+      ),
+      h('p', { class: 'hint' }, 'Проект автоматически сохраняется в localStorage этого браузера, а исходники — в IndexedDB. При очистке данных сайта медиа исчезнет: держите копии файлов и .json проекта.')
+    ),
+    h('div', { class: 'modal-foot' },
+      h('button', { class: 'btn ghost danger', onclick: () => {
+        closeModal();
+        if (confirm('Удалить проект и все импортированные файлы из этого браузера?')) {
+          idbClear();
+          state.media.forEach((m) => { try { if (m.el && m.type !== 'image') m.el.remove(); } catch (e) {} });
+          state.media.clear();
+          resetProject();
+          refreshAll();
+        }
+      } }, 'Очистить всё'),
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'btn primary', onclick: closeModal }, 'Закрыть')
+    )
+  );
+  openModal(dialog);
+}
+
+/* ---------- клавиатура ---------- */
+
+function setupKeyboard() {
+  window.addEventListener('keydown', (e) => {
+    const el = e.target;
+    const tag = (el.tagName || '').toLowerCase();
+    const editing = tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+    const mod = e.ctrlKey || e.metaKey;
+
+    if (mod) {
+      const k = (e.key || '').toLowerCase();
+      if (k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if (k === 'y') { e.preventDefault(); redo(); return; }
+      if (k === 's') { e.preventDefault(); saveNow(); return; }
+      if (k === 'd' && !editing) { e.preventDefault(); duplicateSelected(); return; }
+      if (k === 'c' && !editing) { e.preventDefault(); copySelected(); return; }
+      if (k === 'v' && !editing) { e.preventDefault(); pasteClipboard(); return; }
+      if (k === 'e') { e.preventDefault(); openExportDialog(); return; }
+      return;
+    }
+    if (editing) return;
+
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); return; }
+    if (e.key === 's' || e.key === 'S' || e.key === 'ы' || e.key === 'Ы') { e.preventDefault(); splitSelected(); return; }
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
+    if (e.key === 'Escape') { closeModal(); state.selection = null; refreshInspector(); refreshTimelineLight(); redraw(); return; }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); e.shiftKey ? seek(state.playhead - 1) : stepFrame(-1); return; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); e.shiftKey ? seek(state.playhead + 1) : stepFrame(1); return; }
+    if (e.key === 'Home') { e.preventDefault(); seek(0); return; }
+    if (e.key === 'End') { e.preventDefault(); seek(projectDuration()); return; }
+    if (e.key === '=' || e.key === '+') { setZoom(state.pxPerSec * 1.2); return; }
+    if (e.key === '-' || e.key === '_') { setZoom(state.pxPerSec / 1.2); return; }
+  });
+}
+
+/* ---------- перетаскивание файлов в окно ---------- */
+
+function setupDropZone() {
+  let depth = 0;
+  window.addEventListener('dragenter', (e) => {
+    if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+    depth++;
+    document.body.classList.add('dropping');
+  });
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('dragleave', () => {
+    depth = Math.max(0, depth - 1);
+    if (!depth) document.body.classList.remove('dropping');
+  });
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    depth = 0;
+    document.body.classList.remove('dropping');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+      importFiles(e.dataTransfer.files);
+    }
+  });
+}
+
+/* ---------- перетаскивание текста по превью ---------- */
+
+function setupStageInteractions() {
+  const cv = $('#preview');
+  cv.addEventListener('pointerdown', (e) => {
+    const rect = cv.getBoundingClientRect();
+    if (!rect.width) return;
+    const nx = (e.clientX - rect.left) / rect.width;
+    const ny = (e.clientY - rect.top) / rect.height;
+    const clip = hitTestText(nx, ny);
+    if (!clip) return;
+    e.preventDefault();
+    state.selection = clip.id;
+    refreshInspector();
+    refreshTimelineLight();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const ox = clip.text.x == null ? 0.5 : clip.text.x;
+    const oy = clip.text.y == null ? 0.5 : clip.text.y;
+    let moved = false;
+    const move = (ev) => {
+      const dx = (ev.clientX - startX) / rect.width;
+      const dy = (ev.clientY - startY) / rect.height;
+      if (!moved && Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) < 3) return;
+      if (!moved) { moved = true; pushHistory(); cv.classList.add('dragging'); }
+      clip.text.x = clamp(ox + dx, -0.2, 1.2);
+      clip.text.y = clamp(oy + dy, -0.2, 1.2);
+      markDirty();
+      redraw();
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      cv.classList.remove('dragging');
+      if (moved) refreshInspector();
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+
+  /* клик по пустому месту превью снимает выделение */
+  cv.addEventListener('click', (e) => {
+    const rect = cv.getBoundingClientRect();
+    if (!rect.width) return;
+    const nx = (e.clientX - rect.left) / rect.width;
+    const ny = (e.clientY - rect.top) / rect.height;
+    if (!hitTestText(nx, ny) && state.selection) {
+      /* оставляем выделение, чтобы не мешать работе с инспектором */
+    }
+  });
+}
+
+/* ---------- запуск ---------- */
+
+async function boot() {
+  initRenderer();
+  buildTimelineShell();
+  buildTabs();
+  setupTopbar();
+  setupKeyboard();
+  setupDropZone();
+  setupStageInteractions();
+
+  /* AudioContext просыпается на первый же жест пользователя */
+  const wake = () => wakeAudio();
+  window.addEventListener('pointerdown', wake, true);
+  window.addEventListener('keydown', wake, true);
+
+  const saved = loadProject();
+  state.project = saved || createProject('Мой проект', '16:9');
+
+  window.addEventListener('resize', debounce(() => {
+    refreshTimeline();
+    updatePlayheadUI();
+    updateStageEmpty();
+  }, 150));
+
+  refreshAll();
+
+  try {
+    await restoreMediaFromIdb();
+  } catch (e) {
+    console.warn('restore failed', e);
+  }
+  refreshAll();
+  if (saved && state.project.clips.length) {
+    toast('Проект восстановлен из этого браузера', 'ok');
+  } else {
+    toast('Нажмите «Импорт», чтобы добавить видео', 'info', 5000);
+  }
+  requestAnimationFrame(tickLoop);
+}
+
+/* отладочный доступ (используется автотестами) */
+window.__clipcut = {
+  get state() { return state; },
+  refreshAll, refreshTimeline, redraw, drawFrame, tickLoop,
+  importFiles, addMediaToTimeline, addTextClip, splitSelected, deleteSelected,
+  duplicateSelected, applyFilter, applyTransition, seek, play, pause, togglePlay,
+  openExportDialog, startExport, pickMime, saveNow, setTab, fitTimeline,
+  projectDuration, clipsOf, findClip, toast,
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+
+</script>
+</body>
+</html>
